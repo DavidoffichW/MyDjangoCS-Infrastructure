@@ -1,28 +1,38 @@
 # MyDjangoCS-Infrastructure
 
-A small, inspectable Django/HTMX reliability experiment in admitting a command once per idempotency key, executing it deliberately, and leaving enough evidence to explain what happened.
+A small systems laboratory for one question: what does it take to turn fictional
+observations into a result that can be identified, reproduced, interrupted, recovered,
+and explained?
 
-The browser lets you assemble an ordered list of numerical operations with HTMX. Django validates and freezes that list into a versioned command, SQLite records its identity and state, and a single worker executes it. The arithmetic is intentionally simple; the interesting part is the failure behavior around it.
+The project deliberately joins two experiments. The original Django/HTMX workflow lab
+shows transactional admission, idempotency, middleware, caching, and controlled job
+execution. The deterministic foundation adds versioned evidence, semantic reconstruction,
+scientific computations, managed memory, a portable binary format, and immutable artifact
+preservation. The browser lets you inspect the entire authority chain rather than hiding it
+behind a dashboard.
 
-## What the lab demonstrates
+Everything in the scientific corpus is fictional.
 
-- dynamic add, edit, remove, and reorder forms without a client-side framework;
-- request correlation, middleware ordering, elapsed-time reporting, and short-circuiting;
-- transactional command admission with concurrent idempotency checks;
-- explicit `admitted → running → succeeded|failed|interrupted` transitions;
-- real process-termination probes, operator-directed retry, and stale-running recovery;
-- deterministic input and result identities;
-- variant-aware caching of immutable results, never mutable job state;
-- CSRF enforcement for both ordinary forms and HTMX requests.
+## What you can inspect
 
-It does **not** claim distributed exactly-once execution. SQLite plus a deliberately
-serialized worker is enough to expose the important contracts, not enough to make
-arbitrary external side effects safe. The operations in this lab are pure numerical
-transformations; replay is never generalized to external effects.
+- canonical, domain-separated identities for evidence, provenance, manifests, state,
+  investigations, computations, attempts, and results;
+- a deterministic four-sensor reconstruction with explicit missing and anomalous values;
+- time-window and one-hop graph summaries with declared decimal and missing-data policies;
+- five-stage investigation verification before execution is authorized;
+- content-addressed artifacts reconciled against SQLite metadata after restart or failure;
+- fenced job ownership, process-termination probes, explicit recovery, and replay evidence;
+- a bounded memory arena and an explicit little-endian binary observation format;
+- Django, HTMX, versioned JSON endpoints, middleware traces, and representation-safe caches.
 
-## Run it on Windows
+This is not a distributed scheduler, a production scientific model, or an exactly-once
+system for arbitrary side effects. SQLite serializes the authoritative write windows, one
+local worker executes pure computations, and recovery requires positive confirmation that
+the prior worker has stopped.
 
-Python 3.12 is the tested local interpreter.
+## Run the lab
+
+Python 3.12 and 3.13 are exercised in CI. On Windows:
 
 ```powershell
 py -3.12 -m venv .venv
@@ -31,21 +41,44 @@ py -3.12 -m venv .venv
 .\.venv\Scripts\python.exe manage.py runserver 127.0.0.1:8000
 ```
 
-Open <http://127.0.0.1:8000>. Create a workflow, add a few operations, validate and admit it, then run the job from its detail page.
+Open <http://127.0.0.1:8000/lab/> for the deterministic experiment or
+<http://127.0.0.1:8000/> for the original workflow experiment.
 
-The browser action and the worker command use the same application service. To exercise the worker directly:
+The deterministic page guides you through:
+
+```text
+fictional evidence → manifest → semantic state → verified investigation
+                   → admitted computation → execution attempt → immutable result
+```
+
+You can run the same path without the browser:
+
+```powershell
+.\.venv\Scripts\python.exe manage.py run_reference_experiment
+.\.venv\Scripts\python.exe manage.py reconcile_artifacts
+```
+
+`run_reference_experiment` executes the same admitted computation twice under independent
+job identities and reports whether the result identities match. `reconcile_artifacts`
+verifies every registered block and reports missing, corrupt, or unregistered files without
+deleting them.
+
+The generic foreground worker remains available:
 
 ```powershell
 .\.venv\Scripts\python.exe manage.py run_jobs --once
 ```
 
-To mark a stale running attempt as interrupted:
+Recovery is intentionally explicit:
 
 ```powershell
-.\.venv\Scripts\python.exe manage.py recover_jobs --older-than-seconds 60
+.\.venv\Scripts\python.exe manage.py recover_jobs `
+  --older-than-seconds 60 `
+  --confirm-worker-stopped
 ```
 
-Recovery does not retry work automatically. An interrupted or failed job must be returned to the queue explicitly.
+Age is not proof of worker death, so the confirmation flag is mandatory. Recovery marks
+unknown work as interrupted; it does not automatically replay it.
 
 ## Run the checks
 
@@ -59,31 +92,46 @@ Recovery does not retry work automatically. An interrupted or failed job must be
 .\.venv\Scripts\python.exe -m pip check
 ```
 
-The browser tests launch Chromium and exercise the complete Django/HTMX path, including failure and recovery.
+Chromium tests exercise both browser workflows. Separate subprocess tests terminate real
+Python processes at preservation, admission, execution, result-commit, and recovery
+boundaries, then reopen the database and artifact store to inspect what survived.
 
-## Design notes
+For a small fixed-workload timing probe:
 
-- [Architecture and state model](docs/ARCHITECTURE.md)
-- [Adversarial experiments and observed results](docs/EXPERIMENTS.md)
+```powershell
+.\.venv\Scripts\python.exe manage.py benchmark_lab --iterations 25
+```
+
+The output is descriptive local evidence, not a scalability claim.
+
+## Contracts and evidence
+
+- [Architecture and authority boundaries](docs/ARCHITECTURE.md)
+- [Canonical, memory, binary, persistence, and API contracts](docs/CONTRACTS.md)
+- [Golden vectors and conformance procedure](docs/CONFORMANCE.md)
+- [Adversarial experiments and measured results](docs/EXPERIMENTS.md)
 - [Reviewed publication manifest](docs/PUBLICATION_MANIFEST.md)
 - [Reference and licensing boundary](docs/REFERENCE_BOUNDARY.md)
 
-Runtime requirements intentionally use compatible ranges instead of exact patch pins. The validated environment is recorded in the experiment notes.
+The implementation uses compatible dependency ranges rather than exact patch pins. The
+executed versions belong in validation evidence, not in the runtime contract.
 
-## References
+## References and licensing
 
-The design follows the documented behavior of [Django middleware](https://docs.djangoproject.com/en/5.2/topics/http/middleware/), [database transactions](https://docs.djangoproject.com/en/5.2/topics/db/transactions/), [caching](https://docs.djangoproject.com/en/5.2/topics/cache/), and [security](https://docs.djangoproject.com/en/5.2/topics/security/), together with [HTMX](https://htmx.org/docs/) and [django-htmx](https://django-htmx.readthedocs.io/).
+The design follows the documented behavior of
+[Django middleware](https://docs.djangoproject.com/en/5.2/topics/http/middleware/),
+[transactions](https://docs.djangoproject.com/en/5.2/topics/db/transactions/),
+[SQLite support](https://docs.djangoproject.com/en/5.2/ref/databases/),
+[caching](https://docs.djangoproject.com/en/5.2/topics/cache/), and
+[security](https://docs.djangoproject.com/en/5.2/topics/security/). The canonical profile
+is a deliberately restricted scientific subset informed by
+[RFC 8785](https://www.rfc-editor.org/rfc/rfc8785.html); it is not advertised as a complete
+implementation of that RFC.
 
-The GPL-3.0 tutorial [django_htmx_dynamic_forms](https://github.com/justdjango/django_htmx_dynamic_forms/tree/13f2bf04453d5230e42455f68213f2526ee1f6c9) was studied as a reference. No source was copied. This project independently implements the interaction using current dependencies.
+The independently authored code is licensed under [MIT](LICENSE). The vendored HTMX asset
+retains its Zero-Clause BSD terms in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+The excluded WellNet archive and detailed local research report are not part of this
+repository or its license.
 
-## Publication status
-
-This research candidate is staged in a private GitHub repository for owner review.
-The independently authored source is licensed under the [MIT License](LICENSE)
-(`SPDX-License-Identifier: MIT`). The repository remains private; public
-visibility and release require a separate owner decision.
-
-The vendored HTMX asset retains its Zero-Clause BSD license; see
-[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). The excluded WellNet report
-and source archive are not covered by this repository license and remain outside
-the publication boundary.
+The repository remains private. Public visibility, tags, and releases require a separate
+owner decision.

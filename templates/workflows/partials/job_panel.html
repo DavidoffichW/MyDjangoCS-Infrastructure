@@ -14,8 +14,14 @@
 
   <div class="actions">
     {% if job.state == "admitted" %}
-      <form method="post" action="{% url 'job-execute' job.id %}"
-            hx-post="{% url 'job-execute' job.id %}"
+      <form method="post"
+            {% if job.admission_id %}
+              action="{% url 'scientific-job-execute' job.id %}"
+              hx-post="{% url 'scientific-job-execute' job.id %}"
+            {% else %}
+              action="{% url 'job-execute' job.id %}"
+              hx-post="{% url 'job-execute' job.id %}"
+            {% endif %}
             hx-target="#job-panel" hx-swap="outerHTML" hx-sync="this:drop">
         {% csrf_token %}<button class="primary" type="submit">Run now</button>
       </form>

@@ -207,7 +207,11 @@ def admit_investigation(
     declaration: dict[str, Any],
     idempotency_key: str,
 ) -> ScientificAdmissionResult:
-    if not idempotency_key or len(idempotency_key) > 100:
+    if (
+        not isinstance(idempotency_key, str)
+        or not idempotency_key
+        or len(idempotency_key) > 100
+    ):
         raise AdmissionError("structural", "INVALID_IDEMPOTENCY_KEY", "A bounded key is required.")
     admission, _ = foundation_api().admit(declaration, load_state_by_identity)
 

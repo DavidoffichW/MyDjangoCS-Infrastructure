@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Deterministic systems lab · MyDjangoCS-Infrastructure{% endblock %}
+{% block content %}
+<section class="hero">
+  <p class="eyebrow">Scientific infrastructure experiment</p>
+  <h1>Follow evidence all the way to a verified result</h1>
+  <p>The dataset is entirely fictional. The lab keeps evidence provenance, semantic state,
+    computation authority, execution attempts, and result artifacts as separate identities.</p>
+</section>
+
+<div class="grid two">
+  <section class="panel">
+    <h2>Reference experiment</h2>
+    <p>Create or reopen the deterministic four-sensor corpus and its immutable artifacts.</p>
+    <form method="post" action="{% url 'lab-seed' %}">
+      {% csrf_token %}<button class="primary" type="submit">Open fictional dataset</button>
+    </form>
+  </section>
+  <section class="panel">
+    <h2>Preserved runs</h2>
+    <div class="list">
+      {% for run in runs %}
+        <a class="list-row" href="{% url 'lab-run' run.id %}">
+          <span>{{ run.name }}</span><small>{{ run.summary.observations }} observations</small>
+        </a>
+      {% empty %}<p class="muted">No reconstructed state yet.</p>{% endfor %}
+    </div>
+  </section>
+</div>
+{% endblock %}

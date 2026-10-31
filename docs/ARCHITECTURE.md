@@ -1,122 +1,104 @@
-# MyDjangoCS-Infrastructure architecture
+# Architecture and authority boundaries
 
-## Boundary
-
-The lab is one Django process, one SQLite database, server-rendered templates, and a vendored HTMX browser asset. There is no task broker, distributed scheduler, or separate API service.
-
-```text
-browser
-  │ ordinary or HX request
-  ▼
-security → trace middleware → common → CSRF → HTMX → demonstration guard
-  │
-  ▼
-view → application service → transaction → SQLite
-                              │
-single worker command ────────┘
-```
-
-Middleware observes and constrains requests. It does not perform domain transitions or schedule work.
-
-## Responsibility and authority
-
-| Component | Owns | Does not own |
-|---|---|---|
-| `Workflow` / `WorkflowStep` | Editable draft and ordered operation positions | Admitted execution input |
-| `Job` | Frozen command, content identity, authoritative state and result | Browser presentation or cache state |
-| `ExecutionAttempt` | One numbered execution attempt and terminal evidence | Job admission or retry policy |
-| `JobEvent` | Ordered record of committed state changes | Middleware observations |
-| `services.py` | Validation, admission, guarded transitions, calculation and recovery | HTTP rendering |
-| `views.py` | HTTP adaptation and controlled status responses | Domain transition rules |
-| middleware | Correlation, timing and a demonstrable short-circuit | Jobs, transactions or scheduling |
-| result cache | Disposable HTML for an immutable result and response variant | Authority or recovery |
-| worker command | Serial execution admission | Distributed scheduling |
-
-## Command admission and identity
-
-An editable `Workflow` contains ordered `WorkflowStep` records. Admission performs four operations inside the application boundary:
-
-1. validate that the ordered sequence is complete and supported;
-2. serialize the command with `reliability-lab.command/1`;
-3. canonicalize decimal inputs and hash the snapshot plus values;
-4. atomically create a `Job` and its first event.
-
-`Job.idempotency_key` is unique. Reusing a key with the same content identity returns the existing job. Reusing it with different input raises an explicit conflict.
-
-The editable workflow is not authoritative execution input after admission. A job
-executes its immutable JSON snapshot. Model validation and an SQLite trigger reject
-updates to the five admitted command fields, including updates that bypass `save()`.
-
-Canonicalization is versioned and deliberately narrow. JSON keys are sorted, UTF-8
-is used directly, and decimals are rendered without redundant zeroes. Unicode strings
-remain code-point exact: NFC and NFD text are not treated as identical. Inputs are
-finite decimals within the documented magnitude, count, and decimal-place bounds.
-
-## State machine
+The laboratory keeps deterministic authority independent from web delivery. Django adapts
+HTTP requests and persists lifecycle records; it does not define evidence meaning, numeric
+methods, canonical identities, memory rules, or artifact bytes.
 
 ```text
-                         controlled retry
-                      ┌────────────────────┐
-                      ▼                    │
-admitted ──claim──> running ──failure──> failed
-                       │                   │
-                       ├──interruption──> interrupted
-                       │                   │
-                       └──commit result─> succeeded
+┌──────────────── deterministic_lab (no Django imports) ────────────────┐
+│ schema → evidence registration → manifest → reconstructed state       │
+│                           │                                           │
+│ investigation → five-stage verification → computation → result       │
+│                           │                                           │
+│ memory arena · binary format · content-addressed artifact store       │
+└───────────────────────────┬───────────────────────────────────────────┘
+                            │ explicit adapter calls
+┌──────────────── Django application ───────────────────────────────────┐
+│ models + migrations │ scientific_services │ legacy workflow services │
+│ worker commands     │ views/API           │ middleware/cache          │
+└───────────────────────────┬───────────────────────────────────────────┘
+                            │
+                 HTML/HTMX browser or JSON client
 ```
 
-Only declared transitions are legal. Claiming and completing an attempt use separate
-transactions so an interrupted process leaves a detectable `running` record. Each
-authoritative SQLite write uses a short process lock and `BEGIN IMMEDIATE`; the process
-lock handles shared-connection test/runtime contention and SQLite's database write lock
-serializes separate processes. Conditional updates still verify the expected state,
-revision, and attempt number. `select_for_update()` is not treated as a row lock on
-SQLite.
+`workflows/tests/test_architecture_boundaries.py` parses every foundation module and fails
+if it imports Django, the web project, or the workflows application.
 
-Recovery changes an old `running` record to `interrupted`; it does not assume that
-blindly replaying side effects is safe. Requeue remains an explicit operator action.
+## Authority chain
 
-## Formal invariants and assumptions
+| Record | Meaning | Identity inputs | Preserved as |
+|---|---|---|---|
+| Evidence content | Scientific values and explicit relationships | Canonical semantic evidence | Immutable artifact |
+| Evidence provenance | Source and generator declarations | Canonical provenance evidence | Immutable artifact metadata |
+| Manifest | The evidence admitted for reconstruction | Content and provenance identities | Immutable artifact |
+| Semantic state | Verified entities, edges, and observations | Reconstructed meaning, not source location | Immutable artifact + `ResearchRun` |
+| Investigation | Complete declared question and policy | State, targets, time, method, missing/numeric/resource/output policy | `InvestigationRecord` |
+| Admission | Authorization to run one exact computation | Investigation and computation identities | Immutable `AdmissionRecord` |
+| Attempt | One fenced ownership generation | Job, generation, random owner token | `ExecutionAttempt` |
+| Result | Deterministic method output | Admission, state, method output | Immutable artifact + terminal job |
 
-| Kind | Invariant | Enforcement and assumption |
-|---|---|---|
-| Safety | One authoritative job per global idempotency key | Unique database constraint; matching content returns it, conflicting content fails |
-| Safety | Admitted command bytes do not change | Versioned snapshot, model guard, SQLite update trigger |
-| Safety | Attempt numbers are unique and states match finish evidence | Database constraints plus transactional claim/finalize |
-| Safety | No success without a committed result and digest | Database check constraint and one finalization transaction |
-| Safety | No second successful transition | Conditional update requires the current running attempt; success cannot be requeued |
-| Safety | Cache is never authority | Only successful result digests form cache keys; database is read before cache lookup |
-| Safety | A crash before finalization cannot imply success | Claim and result commit are separate; stale running work is interrupted |
-| Progress | A valid admitted job can be claimed | Assumes the SQLite write window becomes available within bounded retry or a later request retries |
-| Progress | Interrupted work can continue | Requires explicit recovery and requeue; no automatic replay |
+Equivalent source provenance may produce the same semantic state identity. A changed
+observation changes both evidence content and semantic state. The contracts never treat
+filenames, database primary keys, or HTTP paths as scientific identity.
 
-These properties assume one SQLite database on a local filesystem, supported Django
-access paths, and no hostile direct modification of the database file. They are not a
-distributed consensus or external-effect guarantee.
+## Persistence and reconciliation
 
-## Deterministic execution
+The filesystem stores immutable bytes by content digest. SQLite stores their declared type,
+schema, size, payload checksum, lifecycle state, and links to runs and results.
 
-Operations consume decimal strings under precision 28 and `ROUND_HALF_EVEN`.
-Canonical JSON uses UTF-8, sorted keys, compact separators, and rejects non-finite JSON
-numbers. SHA-256 identifies admitted content and successful results; a digest proves
-byte identity under this schema, not numerical correctness by itself.
+Publication is staged, flushed, and exposed with a same-filesystem hard link. Database
+registration occurs separately. That boundary intentionally allows one safe failure mode:
+an artifact may exist without a database row. `reconcile_artifacts` reports such an object
+as an orphan; it does not silently promote or delete it. Conversely, missing or corrupt
+registered bytes change the artifact record to a failed state and block result delivery.
 
-This proves repeatability for the lab operations under the recorded command version. It is not evidence of scientific validity, platform-independent floating-point behavior outside this decimal path, or safe replay of arbitrary external effects.
+The source evidence remains immutable. Reconstruction creates a new semantic artifact, and
+execution creates a result artifact. No stage overwrites its predecessor.
 
-## Cache contract
+## Transaction and execution model
 
-Only a successful, immutable result is cached. The key contains the result digest and response variant (`page` or `fragment`), and responses vary on `HX-Request`. Draft workflows, admitted jobs, and other mutable states bypass this cache.
+Authoritative SQLite writes use a short in-process lock plus an explicit `BEGIN IMMEDIATE`
+window. A repository-wide eager `IMMEDIATE` transaction mode was tested and rejected: two
+concurrent HTTP executions could both enter as writers and produce lock failures. Keeping
+the write intent inside the application service preserves short, deliberate critical
+sections.
 
-The cache is disposable. SQLite remains authoritative.
+```text
+admitted ── fenced claim ──> running ── committed result ──> succeeded
+                                │
+                                ├── controlled failure ────> failed
+                                └── confirmed interruption → interrupted
+                                                           │
+                                             explicit retry ┘
+```
 
-## Transaction boundaries
+A claim increments `claim_generation`, creates a random `owner_token`, binds both values to
+the attempt, and records a deterministic attempt identity. Finalization succeeds only when
+job state, generation, owner token, and attempt number still match. A stale worker therefore
+cannot commit after an owner-confirmed recovery and new claim.
 
-- Admission commits the job and its first event together.
-- Claim commits the running state, attempt number, attempt row, and transition event.
-- Calculation runs outside a transaction and performs no authoritative write.
-- Finalization commits the terminal job, result/digest, terminal attempt, and event.
-- Recovery commits the interrupted job, attempt evidence, and event together.
+Age alone never proves that a worker stopped. Recovery requires explicit out-of-band
+confirmation, marks the work interrupted, and leaves retry to an operator. These are
+single-host guarantees, not leases, distributed consensus, or exactly-once external effects.
 
-That separation is intentional: after termination, the database can distinguish work
-that was never claimed, work of unknown completion left running, and a result that was
-fully committed.
+## HTTP and cache boundary
+
+HTML, HTMX fragments, and JSON are delivery representations of the same application
+services. The JSON surface is versioned under `/api/v1/` and uses structured success/error
+envelopes. Django CSRF protection remains active. Upload parsing is bounded by Django's
+configured request limit, and the scientific schemas enforce their own record and resource
+budgets.
+
+Only a successfully committed and reverified result artifact may enter the cache. Cache keys
+include the job, representation, and result artifact identity. Mutable job state, failures,
+and interrupted work bypass the cache. `Vary: HX-Request` prevents page and fragment
+representations from crossing.
+
+## Deliberate exclusions
+
+- no distributed queue, Redis, Celery, or external database;
+- no native extension or Rust boundary in this increment (the local Rust toolchain was not
+  available, and the Python boundary already has conformance tests);
+- no operational, private, or real scientific data;
+- no claim of physical validity from deterministic execution;
+- no hidden fallback from corrupt preservation bytes to database JSON.

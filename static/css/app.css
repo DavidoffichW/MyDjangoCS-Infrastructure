@@ -20,6 +20,8 @@ code { overflow-wrap: anywhere; }
 .site-header { display: flex; gap: 1rem; align-items: baseline; padding: 1rem max(1rem, calc((100vw - 1180px) / 2)); background: #13232b; color: white; }
 .brand { color: white; font-weight: 750; text-decoration: none; }
 .tagline { color: #b9c8cf; font-size: .88rem; }
+.site-nav { margin-left: auto; }
+.site-nav a { color: #d8e4e8; font-size: .88rem; }
 .shell { max-width: 1180px; margin: 0 auto; padding: 2.5rem 1rem 5rem; }
 .hero { max-width: 760px; margin-bottom: 2rem; }
 h1 { font-size: clamp(1.8rem, 3vw, 2.8rem); line-height: 1.05; margin: .3rem 0 1rem; }
@@ -31,6 +33,7 @@ h2 { margin: 0 0 .75rem; }
 .stack { display: grid; gap: .9rem; }
 .stack.compact { gap: .65rem; }
 .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 8px 24px rgb(23 33 43 / 5%); padding: 1.25rem; }
+.callout { margin-bottom: 1.25rem; }
 .page-heading, .section-heading { display: flex; justify-content: space-between; gap: 1rem; align-items: start; }
 .page-heading { align-items: center; margin: .6rem 0 1.3rem; }
 .crumb { color: var(--muted); font-size: .88rem; }
@@ -68,6 +71,14 @@ button:hover, .button:hover { background: #edf2f6; }
 .facts { display: grid; grid-template-columns: max-content 1fr; gap: .5rem .8rem; margin: 0; }
 .facts dt { color: var(--muted); font-size: .82rem; font-weight: 700; }
 .facts dd { margin: 0; min-width: 0; }
+.identities dd { overflow-wrap: anywhere; }
+.plain-list { display: grid; gap: .6rem; list-style: none; margin: 0; padding: 0; }
+.plain-list li { display: grid; gap: .2rem; }
+.table-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; }
+th, td { border-bottom: 1px solid var(--line); padding: .55rem; text-align: left; }
+th { color: var(--muted); font-size: .78rem; text-transform: uppercase; }
+.lab-grid { margin: 1.25rem 0; }
 .timeline { border-left: 2px solid var(--line); display: grid; gap: .75rem; list-style: none; padding-left: 1rem; }
 .timeline li { display: grid; gap: .2rem; }
 .value-list { display: flex; flex-wrap: wrap; gap: .45rem; }

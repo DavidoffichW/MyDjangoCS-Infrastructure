@@ -12,6 +12,7 @@
   <header class="site-header">
     <a class="brand" href="{% url 'home' %}">MyDjangoCS-Infrastructure</a>
     <span class="tagline">Small workflows. Explicit guarantees.</span>
+    <nav class="site-nav"><a href="{% url 'lab-home' %}">Deterministic lab</a></nav>
   </header>
   <main class="shell">
     {% block content %}{% endblock %}

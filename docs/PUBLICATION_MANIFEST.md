@@ -9,17 +9,19 @@ authorize public visibility, release, licensing, or redistribution of the source
 - `.gitignore`
 - `README.md`, `LICENSE`, `THIRD_PARTY_NOTICES.md`
 - `manage.py`, `pyproject.toml`, `requirements*.txt`
+- `deterministic_lab/`, the Django-independent foundation
 - `reliability_lab/`
 - `workflows/`, including migrations, management commands, and synthetic tests
 - `templates/`
 - `static/css/app.css`
 - `static/vendor/htmx/htmx.min.js` with its retained notice
-- `docs/ARCHITECTURE.md`, `docs/EXPERIMENTS.md`, `docs/REFERENCE_BOUNDARY.md`, and this file
+- `docs/ARCHITECTURE.md`, `docs/CONTRACTS.md`, `docs/CONFORMANCE.md`,
+  `docs/EXPERIMENTS.md`, `docs/REFERENCE_BOUNDARY.md`, and this file
 
 ## Exclude
 
 - `.git/`, virtual environments, caches, coverage and test output
-- `db.sqlite3` and every runtime/test SQLite file
+- `db.sqlite3`, `runtime/`, content-addressed runtime artifacts, and every test SQLite file
 - `research-output/` and the detailed WellNet report
 - `references/` and the WellNet archive
 - `GHP_Docs/`, context exports, agent instructions, and internal validation material
