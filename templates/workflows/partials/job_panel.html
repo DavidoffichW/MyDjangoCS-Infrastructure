@@ -14,11 +14,17 @@
 
   <div class="actions">
     {% if job.state == "admitted" %}
-      <button class="primary" type="button" hx-post="{% url 'job-execute' job.id %}"
-              hx-target="#job-panel" hx-swap="outerHTML" hx-sync="this:drop">Run now</button>
+      <form method="post" action="{% url 'job-execute' job.id %}"
+            hx-post="{% url 'job-execute' job.id %}"
+            hx-target="#job-panel" hx-swap="outerHTML" hx-sync="this:drop">
+        {% csrf_token %}<button class="primary" type="submit">Run now</button>
+      </form>
     {% elif job.state == "failed" or job.state == "interrupted" %}
-      <button type="button" hx-post="{% url 'job-retry' job.id %}"
-              hx-target="#job-panel" hx-swap="outerHTML">Return to queue</button>
+      <form method="post" action="{% url 'job-retry' job.id %}"
+            hx-post="{% url 'job-retry' job.id %}"
+            hx-target="#job-panel" hx-swap="outerHTML">
+        {% csrf_token %}<button type="submit">Return to queue</button>
+      </form>
     {% elif job.state == "succeeded" %}
       <a class="button primary" href="{% url 'job-result' job.id %}">Open immutable result</a>
     {% endif %}

@@ -16,15 +16,25 @@
           {% if step.parameter is not None %}<small>parameter {{ step.parameter }}</small>{% endif %}
         </div>
         <div class="step-actions">
-          <button type="button" title="Move up" hx-post="{% url 'step-move' step.id 'up' %}"
-                  hx-target="#step-editor" hx-swap="outerHTML">↑</button>
-          <button type="button" title="Move down" hx-post="{% url 'step-move' step.id 'down' %}"
-                  hx-target="#step-editor" hx-swap="outerHTML">↓</button>
-          <button type="button" hx-get="{% url 'step-edit' step.id %}"
-                  hx-target="#step-editor" hx-swap="outerHTML">Edit</button>
-          <button class="danger" type="button" hx-post="{% url 'step-delete' step.id %}"
-                  hx-confirm="Remove this operation?" hx-target="#step-editor"
-                  hx-swap="outerHTML">Remove</button>
+          <form method="post" action="{% url 'step-move' step.id 'up' %}"
+                hx-post="{% url 'step-move' step.id 'up' %}"
+                hx-target="#step-editor" hx-swap="outerHTML">
+            {% csrf_token %}<button type="submit" title="Move up">↑</button>
+          </form>
+          <form method="post" action="{% url 'step-move' step.id 'down' %}"
+                hx-post="{% url 'step-move' step.id 'down' %}"
+                hx-target="#step-editor" hx-swap="outerHTML">
+            {% csrf_token %}<button type="submit" title="Move down">↓</button>
+          </form>
+          <a class="button" href="{% url 'step-edit' step.id %}"
+             hx-get="{% url 'step-edit' step.id %}"
+             hx-target="#step-editor" hx-swap="outerHTML">Edit</a>
+          <form method="post" action="{% url 'step-delete' step.id %}"
+                hx-post="{% url 'step-delete' step.id %}"
+                hx-confirm="Remove this operation?" hx-target="#step-editor"
+                hx-swap="outerHTML">
+            {% csrf_token %}<button class="danger" type="submit">Remove</button>
+          </form>
         </div>
       </li>
     {% empty %}
@@ -41,8 +51,9 @@
     <div class="actions">
       <button class="primary" type="submit">{% if editing_step %}Save operation{% else %}Add operation{% endif %}</button>
       {% if editing_step %}
-        <button type="button" hx-get="{% url 'step-new' workflow.id %}"
-                hx-target="#step-editor" hx-swap="outerHTML">Cancel</button>
+        <a class="button" href="{% url 'step-new' workflow.id %}"
+           hx-get="{% url 'step-new' workflow.id %}"
+           hx-target="#step-editor" hx-swap="outerHTML">Cancel</a>
       {% endif %}
       <span class="htmx-indicator">Updating…</span>
     </div>

@@ -1,4 +1,24 @@
-# Experiments
+# Adversarial reliability experiments
+
+The tests use independent database connections for races and disposable on-disk SQLite
+databases for process termination. A deliberately raised Python exception is tested as
+rollback behavior, but is not reported as a process crash.
+
+## Experiment matrix
+
+| Hypothesis | Setup / fault | Expected invariant | Observed result | Test | Limitation |
+|---|---|---|---|---|---|
+| Equal concurrent submissions share authority | Two committed requests, same key and canonical input | One job; both callers receive its identity | Passed | `test_identical_concurrent_admission_returns_one_authoritative_job` | Global key scope only |
+| A reused key cannot change meaning | Concurrent submissions, same key, different values | One job and one explicit conflict | Passed | `test_conflicting_concurrent_admission_has_one_winner_and_one_conflict` | No distributed database claim |
+| One running attempt wins | Two independent claim/execute requests | One attempt; loser is controlled | Passed | `test_competing_claims_have_one_controlled_winner`, browser double-submit | A contender can receive 503 if the bounded SQLite window is busy |
+| Pre-claim death leaves no claim evidence | Terminate the subprocess inside an uncommitted outer transaction | Admitted, zero attempts | Passed | `test_process_exit_before_claim_commit_rolls_back_every_claim_record` | OS/filesystem durability beyond SQLite is not simulated |
+| Post-claim death fails closed | Exit after claim commit | Running with no result; explicit recovery interrupts | Passed | `test_process_exit_after_claim_fails_closed_until_recovery` | Completion outside the database cannot be inferred |
+| Calculation death cannot become success | Kill during deterministic calculation | Running, no result/digest | Passed | `test_process_termination_during_calculation_leaves_no_result` | Calculation has no external effects |
+| Pre-finalization death cannot become success | Kill immediately before result finalization | Running, no result/digest | Passed | `test_process_termination_before_finalization_leaves_no_result` | Same local machine/database |
+| A committed result survives worker death | Exit immediately after success commit | One terminal attempt/result/event sequence after restart | Passed | `test_process_exit_after_success_commit_preserves_one_result` | No power-loss/fsync laboratory |
+| Recovery itself is atomic | Kill while recovery is uncommitted | Original running state remains; later recovery succeeds | Passed | `test_process_termination_during_recovery_rolls_back_reconciliation` | Manual recovery policy |
+| Cache variants cannot cross | Page/fragment, two digests, clear, failed/interrupted jobs | Correct representation or no cache entry | Passed | cache tests in `test_http.py` | Local-memory cache only |
+| Ordinary HTML remains usable | Chromium with JavaScript disabled | Add/remove forms still work | Passed | `test_ordinary_html_forms_work_without_javascript` | HTMX enhancements are intentionally absent |
 
 ## Request lifecycle
 
@@ -14,7 +34,10 @@ Sending `X-Lab-Short-Circuit: 1` produces HTTP 429 and:
 trace.enter > guard.block > trace.exit
 ```
 
-This demonstrates request order and short-circuiting. It is instrumentation for the lab, not a production tracing system.
+View and inner-middleware exceptions are converted by Django at middleware boundaries;
+the outer trace middleware observes the resulting 500 response. CSRF rejection reaches
+the guard's request phase but not the view. This is instrumentation for the lab, not a
+production tracing system.
 
 ## Duplicate admission
 
@@ -29,7 +52,9 @@ The invariant is key-plus-content consistency. The implementation does not claim
 
 Add **Inject one controlled failure** to a workflow. The first attempt records `INJECTED_FAILURE`. Return the job to the queue and run it again; the second attempt succeeds. The two attempts and all state changes remain visible.
 
-For interruption recovery, claim a job, leave it running beyond a threshold, and run `recover_jobs`. The job becomes `interrupted`; a human-directed requeue is still required.
+The subprocess probes terminate actual Python processes at the transaction boundaries
+listed above. They inspect the reopened database before recovery and again afterward.
+Recovery never infers success and never retries automatically.
 
 ## Cache correctness
 
@@ -45,4 +70,6 @@ Request a successful result twice as a full page and twice with `HX-Request: tru
 - Playwright 1.64.1 with Chromium
 - Ruff 0.17.3
 
-These are executed versions, not exact runtime pins. Remote CI remains unexecuted until a remote repository is authorized.
+These are the R0 executed versions. R1 requalification records its exact environment in
+the portfolio evidence. Remote CI remains unexecuted until a remote repository is
+authorized.

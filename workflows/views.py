@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from django.core.cache import cache
+from django.db import OperationalError
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
@@ -13,6 +14,7 @@ from reliability_lab.middleware import mark_trace
 from .forms import AdmissionForm, StepForm, WorkflowForm
 from .models import Job, Workflow, WorkflowStep
 from .services import (
+    DatabaseBusy,
     IdempotencyConflict,
     InvalidTransition,
     WorkflowValidationError,
@@ -203,13 +205,21 @@ def job_execute(request: HttpRequest, job_id) -> HttpResponse:
     mark_trace(request, "view.job_execute")
     try:
         job = execute_job(job_id)
-    except InvalidTransition as exc:
-        job = get_object_or_404(Job, pk=job_id)
+    except (DatabaseBusy, InvalidTransition) as exc:
+        try:
+            job = Job.objects.get(pk=job_id)
+        except OperationalError:
+            return HttpResponse(
+                "The SQLite state transition is still committing; retry the request.",
+                status=503,
+            )
+        except Job.DoesNotExist:
+            return HttpResponse("Job not found.", status=404)
         return render(
             request,
             "workflows/partials/job_panel.html",
             {"job": job, "action_error": str(exc)},
-            status=409,
+            status=503 if isinstance(exc, DatabaseBusy) else 409,
         )
     return render(request, "workflows/partials/job_panel.html", {"job": job})
 

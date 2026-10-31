@@ -1,6 +1,6 @@
 # Django/HTMX Reliability Lab
 
-A small, inspectable experiment in accepting work exactly once at the application boundary, executing it deliberately, and leaving enough evidence to explain what happened.
+A small, inspectable experiment in admitting a command once per idempotency key, executing it deliberately, and leaving enough evidence to explain what happened.
 
 The browser lets you assemble an ordered list of numerical operations with HTMX. Django validates and freezes that list into a versioned command, SQLite records its identity and state, and a single worker executes it. The arithmetic is intentionally simple; the interesting part is the failure behavior around it.
 
@@ -8,14 +8,17 @@ The browser lets you assemble an ordered list of numerical operations with HTMX.
 
 - dynamic add, edit, remove, and reorder forms without a client-side framework;
 - request correlation, middleware ordering, elapsed-time reporting, and short-circuiting;
-- transactional command admission with an idempotency key;
+- transactional command admission with concurrent idempotency checks;
 - explicit `admitted → running → succeeded|failed|interrupted` transitions;
-- controlled failure, operator-directed retry, and stale-running recovery;
+- real process-termination probes, operator-directed retry, and stale-running recovery;
 - deterministic input and result identities;
 - variant-aware caching of immutable results, never mutable job state;
 - CSRF enforcement for both ordinary forms and HTMX requests.
 
-It does **not** claim distributed exactly-once execution. SQLite plus a single worker is enough to expose the important contracts, not enough to make arbitrary external side effects safe.
+It does **not** claim distributed exactly-once execution. SQLite plus a deliberately
+serialized worker is enough to expose the important contracts, not enough to make
+arbitrary external side effects safe. The operations in this lab are pure numerical
+transformations; replay is never generalized to external effects.
 
 ## Run it on Windows
 
@@ -61,7 +64,8 @@ The browser tests launch Chromium and exercise the complete Django/HTMX path, in
 ## Design notes
 
 - [Architecture and state model](docs/ARCHITECTURE.md)
-- [Experiments and expected observations](docs/EXPERIMENTS.md)
+- [Adversarial experiments and observed results](docs/EXPERIMENTS.md)
+- [Reviewed publication manifest](docs/PUBLICATION_MANIFEST.md)
 - [Reference and licensing boundary](docs/REFERENCE_BOUNDARY.md)
 
 Runtime requirements intentionally use compatible ranges instead of exact patch pins. The validated environment is recorded in the experiment notes.
