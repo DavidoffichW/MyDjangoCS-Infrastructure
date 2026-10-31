@@ -57,6 +57,8 @@ class WorkflowServiceTests(TestCase):
         second = validate_workflow(self.workflow, [Decimal("1"), Decimal("2")])
         self.assertEqual(first["input_digest"], second["input_digest"])
         self.assertEqual(first["values"], ["1", "2"])
+        self.workflow.refresh_from_db()
+        self.assertEqual(first["snapshot"]["workflow_revision"], self.workflow.revision)
 
     def test_duplicate_admission_returns_same_authoritative_job(self) -> None:
         self.add_standard_steps()

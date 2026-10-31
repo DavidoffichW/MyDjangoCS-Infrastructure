@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import uuid
 
+from django.core.exceptions import ValidationError
 from django.db import models
+from django.db.models import Q
 
 
 class Workflow(models.Model):
@@ -72,6 +74,50 @@ class Job(models.Model):
 
     class Meta:
         ordering = ["created_at", "id"]
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(
+                    state__in=[
+                        "admitted",
+                        "running",
+                        "succeeded",
+                        "failed",
+                        "interrupted",
+                    ]
+                ),
+                name="job_state_valid",
+            ),
+            models.CheckConstraint(
+                condition=(Q(state="succeeded", result__isnull=False) & ~Q(result_digest=""))
+                | (~Q(state="succeeded") & Q(result__isnull=True) & Q(result_digest="")),
+                name="job_result_matches_success_state",
+            ),
+        ]
+
+    IMMUTABLE_COMMAND_FIELDS = (
+        "workflow_id",
+        "command_version",
+        "input_digest",
+        "workflow_snapshot",
+        "input_values",
+    )
+
+    def save(self, *args, **kwargs) -> None:
+        if not self._state.adding:
+            stored = (
+                type(self).objects.filter(pk=self.pk).values(*self.IMMUTABLE_COMMAND_FIELDS).first()
+            )
+            if stored is not None:
+                changed = [
+                    field
+                    for field in self.IMMUTABLE_COMMAND_FIELDS
+                    if stored[field] != getattr(self, field)
+                ]
+                if changed:
+                    raise ValidationError(
+                        f"Admitted command fields are immutable: {', '.join(changed)}."
+                    )
+        super().save(*args, **kwargs)
 
 
 class ExecutionAttempt(models.Model):
@@ -88,7 +134,16 @@ class ExecutionAttempt(models.Model):
             models.UniqueConstraint(
                 fields=["job", "number"],
                 name="job_attempt_number_unique",
-            )
+            ),
+            models.CheckConstraint(
+                condition=Q(state__in=["running", "succeeded", "failed", "interrupted"]),
+                name="execution_attempt_state_valid",
+            ),
+            models.CheckConstraint(
+                condition=Q(state="running", finished_at__isnull=True)
+                | (~Q(state="running") & Q(finished_at__isnull=False)),
+                name="execution_attempt_finish_matches_state",
+            ),
         ]
 
 

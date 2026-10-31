@@ -5,9 +5,7 @@ from decimal import Decimal, InvalidOperation
 from django import forms
 
 from .models import Workflow, WorkflowStep
-
-MAX_INPUT_VALUES = 100
-MAX_ABS_VALUE = Decimal("1000000000")
+from .services import MAX_ABS_INPUT_VALUE, MAX_INPUT_DECIMAL_PLACES, MAX_INPUT_VALUES
 
 
 def parse_input_values(raw: str) -> list[Decimal]:
@@ -26,9 +24,13 @@ def parse_input_values(raw: str) -> list[Decimal]:
             raise forms.ValidationError(f"{part!r} is not a decimal number.") from exc
         if not value.is_finite():
             raise forms.ValidationError("NaN and infinite values are not allowed.")
-        if abs(value) > MAX_ABS_VALUE:
+        if abs(value) > MAX_ABS_INPUT_VALUE:
             raise forms.ValidationError(
-                f"Values must be between {-MAX_ABS_VALUE} and {MAX_ABS_VALUE}."
+                f"Values must be between {-MAX_ABS_INPUT_VALUE} and {MAX_ABS_INPUT_VALUE}."
+            )
+        if value.as_tuple().exponent < -MAX_INPUT_DECIMAL_PLACES:
+            raise forms.ValidationError(
+                f"Values may use at most {MAX_INPUT_DECIMAL_PLACES} decimal places."
             )
         values.append(value)
     return values
