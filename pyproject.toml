@@ -1,5 +1,5 @@
 [project]
-name = "django-htmx-reliability-lab"
+name = "mydjangocs-infrastructure"
 version = "0.1.0.dev0"
 description = "A small lab for reliable Django and HTMX workflow execution"
 requires-python = ">=3.12"

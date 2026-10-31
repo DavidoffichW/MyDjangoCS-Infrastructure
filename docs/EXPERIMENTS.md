@@ -1,4 +1,4 @@
-# Adversarial reliability experiments
+# MyDjangoCS-Infrastructure adversarial reliability experiments
 
 The tests use independent database connections for races and disposable on-disk SQLite
 databases for process termination. A deliberately raised Python exception is tested as

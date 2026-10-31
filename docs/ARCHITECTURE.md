@@ -1,4 +1,4 @@
-# Architecture
+# MyDjangoCS-Infrastructure architecture
 
 ## Boundary
 

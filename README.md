@@ -1,6 +1,6 @@
-# Django/HTMX Reliability Lab
+# MyDjangoCS-Infrastructure
 
-A small, inspectable experiment in admitting a command once per idempotency key, executing it deliberately, and leaving enough evidence to explain what happened.
+A small, inspectable Django/HTMX reliability experiment in admitting a command once per idempotency key, executing it deliberately, and leaving enough evidence to explain what happened.
 
 The browser lets you assemble an ordered list of numerical operations with HTMX. Django validates and freezes that list into a versioned command, SQLite records its identity and state, and a single worker executes it. The arithmetic is intentionally simple; the interesting part is the failure behavior around it.
 

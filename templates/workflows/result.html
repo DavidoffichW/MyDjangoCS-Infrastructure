@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Result {{ job.result_digest|truncatechars:16 }} · Reliability Lab{% endblock %}
+{% block title %}Result {{ job.result_digest|truncatechars:16 }} · MyDjangoCS-Infrastructure{% endblock %}
 {% block content %}
 <nav class="crumb"><a href="{% url 'job-detail' job.id %}">Job {{ job.id }}</a> / Result</nav>
 {% include "workflows/partials/result.html" %}

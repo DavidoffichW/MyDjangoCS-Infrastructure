@@ -1,4 +1,4 @@
-# Reference boundary
+# MyDjangoCS-Infrastructure reference boundary
 
 The lab is an independent implementation.
 

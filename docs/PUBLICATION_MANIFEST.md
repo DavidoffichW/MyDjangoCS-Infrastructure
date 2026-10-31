@@ -1,4 +1,4 @@
-# Reviewed source publication manifest
+# MyDjangoCS-Infrastructure reviewed source publication manifest
 
 This allowlist is prepared for a future owner-authorized private GitHub inspection. It
 does not authorize creating a remote, pushing, licensing, or redistributing the source.
