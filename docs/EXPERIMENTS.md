@@ -71,5 +71,8 @@ Request a successful result twice as a full page and twice with `HX-Request: tru
 - Ruff 0.17.3
 
 These are the R0 executed versions. R1 requalification records its exact environment in
-the portfolio evidence. Remote CI remains unexecuted until a remote repository is
-authorized.
+the portfolio evidence. The private GitHub repository now executes the complete test,
+browser, migration, Ruff, and dependency checks on Windows and Ubuntu. Run
+`41241400675` passed on both operating systems at
+`9002db9283a230bd7b6e7a1a3a1d6fc26130bf24`; later changes must qualify again on
+their own exact commit.
