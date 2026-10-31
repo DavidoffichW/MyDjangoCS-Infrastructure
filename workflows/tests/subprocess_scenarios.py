@@ -115,13 +115,18 @@ def age(job_id: str) -> None:
 
 def recovery_window(job_id: str, marker: str) -> None:
     with transaction.atomic():
-        recover_stale_jobs(0)
+        recover_stale_jobs(0, confirmed_worker_stopped=True)
         signal(marker)
         time.sleep(30)
 
 
 def recover() -> None:
-    print(json.dumps([str(item) for item in recover_stale_jobs(0)]), flush=True)
+    print(
+        json.dumps(
+            [str(item) for item in recover_stale_jobs(0, confirmed_worker_stopped=True)]
+        ),
+        flush=True,
+    )
 
 
 def admit_copy(job_id: str) -> None:

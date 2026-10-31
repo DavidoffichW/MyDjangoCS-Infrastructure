@@ -53,6 +53,11 @@ DATABASES = {
     }
 }
 
+ARTIFACT_STORE_ROOT = Path(
+    os.environ.get("LAB_ARTIFACT_STORE", BASE_DIR / "runtime" / "artifacts")
+)
+DATA_UPLOAD_MAX_MEMORY_SIZE = 2 * 1024 * 1024
+
 CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.locmem.LocMemCache",

@@ -72,7 +72,7 @@ def _retry_sqlite_busy(operation):
 
 @contextmanager
 def _authoritative_write():
-    """Serialize short SQLite state changes; retain atomic blocks when already nested."""
+    """Serialize short SQLite writes without making every request an eager writer."""
     if connection.vendor != "sqlite":
         with transaction.atomic():
             yield
@@ -472,6 +472,13 @@ def execute_job(job_id: UUID) -> Job:
 
 
 def execute_next_job() -> Job | None:
+    next_job = Job.objects.filter(state=Job.State.ADMITTED).order_by("created_at", "id").first()
+    if next_job is None:
+        return None
+    if next_job.admission_id:
+        from .scientific_services import execute_scientific_job
+
+        return execute_scientific_job(next_job.id)
     claimed = claim_next_job()
     if not claimed:
         return None
@@ -521,6 +528,7 @@ def requeue_job(job_id: UUID) -> Job:
                 revision=F("revision") + 1,
                 failure_code="",
                 failure_message="",
+                owner_token="",
                 updated_at=timezone.now(),
             )
             if updated != 1:
@@ -532,7 +540,15 @@ def requeue_job(job_id: UUID) -> Job:
     return _retry_sqlite_busy(requeue_once)
 
 
-def recover_stale_jobs(max_age_seconds: int) -> list[UUID]:
+def recover_stale_jobs(
+    max_age_seconds: int,
+    *,
+    confirmed_worker_stopped: bool = False,
+) -> list[UUID]:
+    if not confirmed_worker_stopped:
+        raise InvalidTransition(
+            "Age alone does not prove worker termination; explicit confirmation is required."
+        )
     cutoff = timezone.now() - timedelta(seconds=max_age_seconds)
     candidate_ids = list(
         Job.objects.filter(state=Job.State.RUNNING, updated_at__lte=cutoff).values_list(
@@ -558,6 +574,7 @@ def recover_stale_jobs(max_age_seconds: int) -> list[UUID]:
                     revision=F("revision") + 1,
                     failure_code="INTERRUPTED",
                     failure_message="Execution stopped before a result was committed.",
+                    owner_token="",
                     updated_at=timezone.now(),
                 )
                 if updated != 1:

@@ -118,7 +118,7 @@ class WorkflowServiceTests(TestCase):
         claim_job(job.id)
         Job.objects.filter(pk=job.id).update(updated_at=timezone.now() - timedelta(minutes=5))
 
-        recovered = recover_stale_jobs(60)
+        recovered = recover_stale_jobs(60, confirmed_worker_stopped=True)
         job.refresh_from_db()
 
         self.assertEqual(recovered, [job.id])

@@ -247,7 +247,7 @@ class MiddlewareAndHttpTests(TestCase):
         Job.objects.filter(pk=interrupted.id).update(
             updated_at=timezone.now() - timedelta(minutes=5)
         )
-        recover_stale_jobs(0)
+        recover_stale_jobs(0, confirmed_worker_stopped=True)
 
         for job in (failed, interrupted):
             response = self.client.get(reverse("job-result", args=[job.id]))
