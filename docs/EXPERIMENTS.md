@@ -99,8 +99,8 @@ their own exact commit.
 
 ## Deterministic foundation qualification
 
-On 2026-11-01, CPython 3.12.13 on Windows executed 103 tests in 66.002 seconds, and a fresh
-CPython 3.13.14 environment executed the same 103 tests in 65.486 seconds. The suite included
+On 2026-11-01, CPython 3.12.13 on Windows executed 104 tests in 66.256 seconds, and a fresh
+CPython 3.13.14 environment executed the same 104 tests in 65.780 seconds. The suite included
 six Chromium workflows, six new scientific hard-exit scenarios, the original seven
 process-termination scenarios, concurrent SQLite requests, property-based memory checks,
 golden vectors, migrations, API/CSRF behavior, and artifact corruption. Django system
