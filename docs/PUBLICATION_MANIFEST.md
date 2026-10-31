@@ -7,7 +7,7 @@ authorize public visibility, release, licensing, or redistribution of the source
 
 - `.github/workflows/ci.yml`
 - `.gitignore`
-- `README.md`, `THIRD_PARTY_NOTICES.md`
+- `README.md`, `LICENSE`, `THIRD_PARTY_NOTICES.md`
 - `manage.py`, `pyproject.toml`, `requirements*.txt`
 - `reliability_lab/`
 - `workflows/`, including migrations, management commands, and synthetic tests
@@ -25,6 +25,8 @@ authorize public visibility, release, licensing, or redistribution of the source
 - `GHP_Docs/`, context exports, agent instructions, and internal validation material
 - credentials, local environment files, private datasets, and generated artifacts
 
-The lab contains independently written application code and a vendored HTMX file
-covered by `THIRD_PARTY_NOTICES.md`. The authored-code license and remote visibility
-remain owner decisions; without a selected license, publication remains blocked.
+The lab contains independently written application code licensed under MIT and a
+vendored HTMX file covered separately by `THIRD_PARTY_NOTICES.md`. The reviewed
+source is staged in the private `DavidoffichW/MyDjangoCS-Infrastructure`
+repository. Public visibility, tag, release, and any change to the WellNet
+disclosure boundary remain separate owner decisions.

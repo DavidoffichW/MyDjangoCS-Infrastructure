@@ -78,4 +78,12 @@ The GPL-3.0 tutorial [django_htmx_dynamic_forms](https://github.com/justdjango/d
 
 ## Publication status
 
-This research candidate is staged in a private GitHub repository for owner review. A license for the authored source has not been selected, so public redistribution and release remain blocked pending an owner decision. The vendored HTMX asset retains its own license; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+This research candidate is staged in a private GitHub repository for owner review.
+The independently authored source is licensed under the [MIT License](LICENSE)
+(`SPDX-License-Identifier: MIT`). The repository remains private; public
+visibility and release require a separate owner decision.
+
+The vendored HTMX asset retains its Zero-Clause BSD license; see
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). The excluded WellNet report
+and source archive are not covered by this repository license and remain outside
+the publication boundary.

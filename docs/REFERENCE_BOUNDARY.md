@@ -8,4 +8,8 @@ The GPL-3.0 `django_htmx_dynamic_forms` tutorial was inspected at revision `13f2
 
 HTMX 2.0.11 is vendored from its official project under the Zero-Clause BSD license. Django and django-htmx are installed dependencies.
 
+The independently authored application source is licensed under MIT. That
+license does not grant rights to the excluded WellNet archive, detailed local
+research report, GPL tutorial source, or any other external reference.
+
 The complete source-grounded WellNet report is maintained as excluded local research output until the owner confirms disclosure eligibility. Public-facing summaries must remain sanitized.
