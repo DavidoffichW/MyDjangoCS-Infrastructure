@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Job {{ job.id }} · Reliability Lab{% endblock %}
+{% block content %}
+<nav class="crumb"><a href="{% url 'workflow-detail' job.workflow.id %}">{{ job.workflow.name }}</a> / Job</nav>
+<section class="page-heading">
+  <div>
+    <p class="eyebrow">Persistent job</p>
+    <h1>{{ job.id }}</h1>
+  </div>
+</section>
+
+<div class="grid two-wide">
+  <section>{% include "workflows/partials/job_panel.html" %}</section>
+  <aside class="stack">
+    <section class="panel">
+      <h2>Identity</h2>
+      <dl class="facts">
+        <dt>Command</dt><dd>{{ job.command_version }}</dd>
+        <dt>Input digest</dt><dd><code>{{ job.input_digest }}</code></dd>
+        <dt>Idempotency key</dt><dd><code>{{ job.idempotency_key }}</code></dd>
+        <dt>Attempts</dt><dd>{{ job.attempts }}</dd>
+      </dl>
+    </section>
+    <section class="panel">
+      <h2>Transition evidence</h2>
+      <ol class="timeline">
+        {% for event in job.events.all %}
+          <li><strong>{{ event.to_state }}</strong><small>{{ event.reason }}</small></li>
+        {% endfor %}
+      </ol>
+    </section>
+  </aside>
+</div>
+{% endblock %}

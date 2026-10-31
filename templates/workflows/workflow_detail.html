@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}{{ workflow.name }} · Reliability Lab{% endblock %}
+{% block content %}
+<nav class="crumb"><a href="{% url 'home' %}">Workflows</a> / {{ workflow.name }}</nav>
+<section class="page-heading">
+  <div>
+    <p class="eyebrow">Workflow {{ workflow.id }}</p>
+    <h1>{{ workflow.name }}</h1>
+  </div>
+  <span class="badge">draft revision {{ workflow.revision }}</span>
+</section>
+
+<div class="grid two-wide">
+  <section>
+    {% include "workflows/partials/step_editor.html" %}
+  </section>
+  <aside class="stack">
+    <section class="panel">
+      <h2>Validate and admit</h2>
+      <p class="muted">Admission freezes the current operations and values into a versioned command.</p>
+      {% include "workflows/partials/admission_form.html" with form=admission_form %}
+    </section>
+    <section class="panel">
+      <h2>Recent jobs</h2>
+      <div class="list">
+        {% for job in jobs %}
+          <a class="list-row" href="{% url 'job-detail' job.id %}">
+            <span>{{ job.id|truncatechars:18 }}</span>
+            <small class="state state-{{ job.state }}">{{ job.get_state_display }}</small>
+          </a>
+        {% empty %}
+          <p class="muted">No admitted jobs.</p>
+        {% endfor %}
+      </div>
+    </section>
+  </aside>
+</div>
+{% endblock %}

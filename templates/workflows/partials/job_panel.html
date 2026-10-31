@@ -1,0 +1,29 @@
+<div id="job-panel" class="panel job-panel">
+  <div class="section-heading">
+    <div>
+      <p class="eyebrow">Current authoritative state</p>
+      <h2 class="state state-{{ job.state }}">{{ job.get_state_display }}</h2>
+    </div>
+    <span class="badge">revision {{ job.revision }}</span>
+  </div>
+
+  {% if action_error %}<div class="notice error">{{ action_error }}</div>{% endif %}
+  {% if job.failure_code %}
+    <div class="notice error"><strong>{{ job.failure_code }}</strong><span>{{ job.failure_message }}</span></div>
+  {% endif %}
+
+  <div class="actions">
+    {% if job.state == "admitted" %}
+      <button class="primary" type="button" hx-post="{% url 'job-execute' job.id %}"
+              hx-target="#job-panel" hx-swap="outerHTML" hx-sync="this:drop">Run now</button>
+    {% elif job.state == "failed" or job.state == "interrupted" %}
+      <button type="button" hx-post="{% url 'job-retry' job.id %}"
+              hx-target="#job-panel" hx-swap="outerHTML">Return to queue</button>
+    {% elif job.state == "succeeded" %}
+      <a class="button primary" href="{% url 'job-result' job.id %}">Open immutable result</a>
+    {% endif %}
+  </div>
+
+  <p class="muted">The browser action uses the same explicit service as
+    <code>python manage.py run_jobs --once</code>. No background worker is implied.</p>
+</div>

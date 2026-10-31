@@ -1,0 +1,14 @@
+<form id="admission-form" class="stack compact" method="post"
+      action="{% url 'workflow-admit' workflow.id %}"
+      hx-post="{% url 'workflow-admit' workflow.id %}"
+      hx-target="#admission-feedback" hx-swap="innerHTML" hx-sync="this:replace">
+  {% csrf_token %}
+  {{ form.as_div }}
+  <div class="actions">
+    <button type="button" hx-post="{% url 'workflow-validate' workflow.id %}"
+            hx-include="#admission-form" hx-target="#admission-feedback">Validate</button>
+    <button class="primary" type="submit">Admit job</button>
+    <span class="htmx-indicator">Checking…</span>
+  </div>
+</form>
+<div id="admission-feedback" class="feedback" aria-live="polite"></div>

@@ -1,0 +1,22 @@
+<section id="result" class="panel result">
+  <p class="eyebrow">Immutable result</p>
+  <h1>{{ job.result_digest }}</h1>
+  <h2>Values</h2>
+  <div class="value-list">
+    {% for value in job.result.values %}<code>{{ value }}</code>{% endfor %}
+  </div>
+  {% if job.result.summary %}
+    <h2>Summary</h2>
+    <dl class="facts">
+      <dt>Count</dt><dd>{{ job.result.summary.count }}</dd>
+      <dt>Sum</dt><dd>{{ job.result.summary.sum }}</dd>
+      <dt>Mean</dt><dd>{{ job.result.summary.mean }}</dd>
+    </dl>
+  {% endif %}
+  <h2>Step evidence</h2>
+  <ol class="timeline">
+    {% for item in job.result.evidence %}
+      <li><strong>{{ item.position }} · {{ item.operation }}</strong><small><code>{{ item.output_digest }}</code></small></li>
+    {% endfor %}
+  </ol>
+</section>

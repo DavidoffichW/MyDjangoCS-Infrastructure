@@ -1,0 +1,5 @@
+{% extends "base.html" %}
+{% block content %}
+<nav class="crumb"><a href="{% url 'workflow-detail' workflow.id %}">{{ workflow.name }}</a> / Operations</nav>
+{% include "workflows/partials/step_editor.html" %}
+{% endblock %}

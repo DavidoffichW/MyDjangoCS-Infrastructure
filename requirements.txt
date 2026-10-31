@@ -1,0 +1,4 @@
+# The upper bound keeps the lab on the Django 5.2 LTS contract. Patch releases
+# remain intentionally unpinned so security and compatibility fixes are usable.
+Django>=5.2,<5.3
+django-htmx>=1.29,<2

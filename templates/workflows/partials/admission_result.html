@@ -1,0 +1,4 @@
+<div class="notice {% if duplicate %}warning{% else %}success{% endif %}">
+  <strong>{% if duplicate %}Existing authoritative job returned.{% else %}New job admitted.{% endif %}</strong>
+  <a href="{% url 'job-detail' job.id %}">Inspect {{ job.id }}</a>
+</div>
