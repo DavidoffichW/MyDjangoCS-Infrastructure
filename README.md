@@ -13,8 +13,9 @@ browser; the scientific meaning lives in a framework-independent foundation.
 The experiment uses four synthetic sensors and two transparent mean calculations. That
 scientific surface is intentionally modest. A complicated model would make it harder to see
 whether a changed result came from new evidence, a different policy, a stale worker, damaged
-storage, or the model itself. Here, every stage is small enough to inspect and every identity
-can be reproduced.
+storage, or the model itself. Using deterministic means instead of a learned predictor
+keeps training-data dependence and model-fit uncertainty out of a reliability experiment.
+Here, every stage is small enough to inspect and every identity can be reproduced.
 
 ## Seven parts, one investigation
 
