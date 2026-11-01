@@ -9,12 +9,15 @@ authorize public visibility, release, licensing, or redistribution of the source
 - `.gitignore`
 - `README.md`, `LICENSE`, `THIRD_PARTY_NOTICES.md`
 - `manage.py`, `pyproject.toml`, `requirements*.txt`
-- `deterministic_lab/`, the Django-independent foundation
+- `foundation/`, the Django-independent scientific contracts and public API
+- `infrastructure/`, runtime memory, preservation, persistence, and orchestration
+- `services/`, explicit scientific and workflow application services
+- `web_infra/`, middleware, cache, API, and HTML delivery adapters
 - `reliability_lab/`
 - `workflows/`, including migrations, management commands, and synthetic tests
-- `templates/`
-- `static/css/app.css`
-- `static/vendor/htmx/htmx.min.js` with its retained notice
+- `frontend/templates/`
+- `frontend/static/css/app.css`
+- `frontend/static/vendor/htmx/htmx.min.js` with its retained notice
 - `docs/ARCHITECTURE.md`, `docs/CONTRACTS.md`, `docs/CONFORMANCE.md`,
   `docs/EXPERIMENTS.md`, `docs/REFERENCE_BOUNDARY.md`, and this file
 

@@ -111,8 +111,11 @@ complete.
 
 ## Stable Python and HTTP surfaces
 
-`deterministic_lab.FoundationAPI` is the Django-independent composition root. Its API version
-is `mydjangocs.foundation-api/1`.
+`foundation.public_api.FoundationAPI` is the Django-independent composition root. Its API
+version is `mydjangocs.foundation-api/1`. The constructor accepts the narrow
+`foundation.contracts.preservation.ArtifactStore` protocol. Runtime wiring of the concrete
+content-addressed store belongs to `services.scientific.composition`, so importing the
+foundation never imports Django or infrastructure.
 
 The HTTP adapter exposes:
 

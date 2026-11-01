@@ -5,24 +5,30 @@ HTTP requests and persists lifecycle records; it does not define evidence meanin
 methods, canonical identities, memory rules, or artifact bytes.
 
 ```text
-┌──────────────── deterministic_lab (no Django imports) ────────────────┐
-│ schema → evidence registration → manifest → reconstructed state       │
-│                           │                                           │
-│ investigation → five-stage verification → computation → result       │
-│                           │                                           │
-│ memory arena · binary format · content-addressed artifact store       │
-└───────────────────────────┬───────────────────────────────────────────┘
-                            │ explicit adapter calls
-┌──────────────── Django application ───────────────────────────────────┐
-│ models + migrations │ scientific_services │ legacy workflow services │
-│ worker commands     │ views/API           │ middleware/cache          │
-└───────────────────────────┬───────────────────────────────────────────┘
-                            │
-                 HTML/HTMX browser or JSON client
+HTML / HTMX / JSON
+        │
+        ▼
+frontend ──► web_infra ──► services ──────────┐
+                   │          │                │
+                   │          ├─► foundation  │
+                   │          └─► infrastructure
+                   │                   │       │
+                   └───────────────────┴───────┘
+                                       ▼
+                           workflows.models / SQLite
 ```
 
-`workflows/tests/test_architecture_boundaries.py` parses every foundation module and fails
-if it imports Django, the web project, or the workflows application.
+`foundation/` owns canonical scientific meaning and has no Django dependency. The public
+composition accepts a narrow artifact-store protocol; `services/scientific/composition.py`
+supplies the concrete local store. `infrastructure/` owns memory, preservation, transaction,
+claim, finalization, and recovery mechanisms without defining scientific interpretation.
+`services/` coordinates use cases. `web_infra/` contains middleware, representation-aware
+caching, `/api/v1/` adapters, and HTML views. `frontend/` contains templates and static
+assets. `workflows/models/` retains the historical Django app label and migration contract.
+
+`workflows/tests/test_architecture_boundaries.py` parses the reorganized layers. It fails on
+foundation-to-Django imports, infrastructure-to-service or web imports, service-to-web
+imports, reappearance of removed broad modules, or a static import cycle.
 
 ## Authority chain
 
@@ -57,7 +63,9 @@ execution creates a result artifact. No stage overwrites its predecessor.
 
 ## Transaction and execution model
 
-Authoritative SQLite writes use a short in-process lock plus an explicit `BEGIN IMMEDIATE`
+Authoritative SQLite writes use the shared
+`infrastructure/persistence/transactions.py` implementation: a short in-process lock plus
+an explicit `BEGIN IMMEDIATE`
 window. A repository-wide eager `IMMEDIATE` transaction mode was tested and rejected: two
 concurrent HTTP executions could both enter as writers and produce lock failures. Keeping
 the write intent inside the application service preserves short, deliberate critical
@@ -84,10 +92,10 @@ single-host guarantees, not leases, distributed consensus, or exactly-once exter
 ## HTTP and cache boundary
 
 HTML, HTMX fragments, and JSON are delivery representations of the same application
-services. The JSON surface is versioned under `/api/v1/` and uses structured success/error
-envelopes. Django CSRF protection remains active. Upload parsing is bounded by Django's
-configured request limit, and the scientific schemas enforce their own record and resource
-budgets.
+services. The JSON surface in `web_infra/api/` is versioned under `/api/v1/` and uses
+structured success/error envelopes. Django CSRF protection remains active. Upload parsing
+is bounded by Django's configured request limit, and the scientific schemas enforce their
+own record and resource budgets.
 
 Only a successfully committed and reverified result artifact may enter the cache. Cache keys
 include the job, representation, and result artifact identity. Mutable job state, failures,

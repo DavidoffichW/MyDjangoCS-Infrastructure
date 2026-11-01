@@ -118,6 +118,34 @@ relationships, a 6,415-byte state artifact, and a 946-byte result artifact:
 | 4 KiB arena allocate/write/seal/release | 0.0323 ms | 0.0418 ms |
 | Verified result artifact read | 0.5434 ms | 0.5791 ms |
 
+## Architecture-reorganization qualification
+
+The 2026-11-01 architecture reorganization retained the same workload, scientific
+identities, binary vectors, Django schema, and browser behavior while separating
+foundation, infrastructure, services, HTTP delivery, and presentation. Fresh disposable
+environments executed 108 tests on Windows: CPython 3.12.13 completed in 69.051 seconds
+and CPython 3.13.14 completed in 70.489 seconds. The four additional tests enforce the
+new dependency directions and reject internal import cycles. The six Chromium workflows
+also passed independently in 10.620 seconds, and the thirteen real process-termination
+scenarios passed independently in 55.952 seconds.
+
+The reorganized 25-iteration benchmark produced:
+
+| Operation | Median | p95 |
+|---|---:|---:|
+| Canonical investigation declaration | 0.0507 ms | 0.0637 ms |
+| Existing-store state build and verification | 5.2344 ms | 5.7003 ms |
+| Foundation method execution and result publication | 1.4996 ms | 1.7182 ms |
+| 4 KiB arena allocate/write/seal/release | 0.0342 ms | 0.0437 ms |
+| Verified result artifact read | 0.5477 ms | 0.5707 ms |
+
+These are local observations, not service-level objectives. The small changes are within
+ordinary local-run variation and do not indicate a material regression. The scientific
+regression recomputed the unchanged semantic state
+`semantic-state:sha256:6edea8182bab6fe1d6b9b46fbeab87332e60b6a21596ffb0a5093b71ac188a83`,
+result `result:sha256:7d32c02fdb42164d1d1f681906afbe27c380240ec61dc57ba62923ced7adf291`,
+and values `alpha = 11.5`, `bravo = 21.333333`.
+
 The cold state build was 150.3398 ms. These measurements describe one local synthetic
 workload and include timer noise, filesystem caching, and host-specific behavior. They do
 not establish throughput, large-data behavior, or production scalability. Windows and
