@@ -1,147 +1,286 @@
 # MyDjangoCS-Infrastructure
 
-MyDjangoCS-Infrastructure is a compact systems laboratory for studying how a scientific command becomes an identifiable, authorized, durable, and reproducible result. It uses Django and HTMX for the human-facing workflow, but its central subject is not CRUD. The repository is concerned with boundaries: which bytes count as evidence, which rules turn those bytes into semantic state, which declaration authorizes a computation, which process owns an execution attempt, and which persisted object can be trusted after interruption.
+How can a scientific computation remain identifiable, verifiable, and recoverable when
+HTTP requests, Python objects, filesystem writes, and database transactions all have
+different lifetimes?
 
-The included study uses a fictional four-sensor network. Its observations, relationships, missing values, and anomalous values are synthetic. Two transparent reference methods—a time-window mean and a one-hop graph-neighborhood mean—make the lifecycle concrete without pretending to be a validated physical model. Reproducibility here means that the declared inputs and policy produce the same canonical identities and numerical outputs. It does not mean that the fictional graph describes reservoir communication, that the methods are appropriate for operational decisions, or that deterministic software proves a scientific hypothesis.
+MyDjangoCS-Infrastructure is a small systems laboratory built to investigate that question.
+It follows one fictional measurement study from raw observations to an admitted computation,
+an immutable result, and a replay in a separate job. Django and HTMX make the lifecycle
+visible in a browser; the scientific meaning lives in a framework-independent foundation.
 
-## Architecture
+The experiment uses four synthetic sensors and two transparent mean calculations. That
+scientific surface is intentionally modest. A complicated model would make it harder to see
+whether a changed result came from new evidence, a different policy, a stale worker, damaged
+storage, or the model itself. Here, every stage is small enough to inspect and every identity
+can be reproduced.
 
-The implementation separates scientific meaning from runtime mechanisms and HTTP delivery. That separation matters because a web view, database row, cache entry, or filesystem path must not quietly become a second definition of the experiment.
+## One investigation, seven responsibilities
 
-```text
-browser / JSON client
-        │
-        ▼
-frontend ──► web_infra (middleware, views, API, response cache)
-                         │
-                         ▼
-                    services
-             scientific │ workflows
-                  ┌──────┴──────┐
-                  ▼             ▼
-             foundation    infrastructure
-        contracts and meaning  memory, preservation,
-                               transactions, orchestration
-                  │             │
-                  └──────┬──────┘
-                         ▼
-               workflows.models / SQLite
+The repository separates the rules that define an investigation from the machinery that
+runs it. This resembles the useful part of a layered database design: the upper layer can
+compose a task without becoming a second implementation of the lower layer's contracts.
+SQLAlchemy's account of its Core/ORM split is a helpful discussion of why a rich lower-level
+contract should remain visible rather than be hidden by a convenient adapter
+([The Architecture of Open Source Applications](https://aosabook.org/en/v2/sqlalchemy.html)).
+
+```mermaid
+flowchart TD
+    B[Browser or JSON client] --> W[web_infra<br/>middleware, views, API, cache]
+    W --> S[services<br/>use-case coordination]
+    S --> F[foundation<br/>scientific meaning and identity]
+    S --> I[infrastructure<br/>memory, artifacts, transactions, workers]
+    S --> M[workflows<br/>Django records and forms]
+    M --> DB[(SQLite)]
+    I --> FS[(Immutable artifact store)]
+    UI[frontend<br/>templates, CSS, vendored HTMX] --> B
+    R[reliability_lab<br/>Django settings and startup] --> W
 ```
 
-`foundation/` is Django-independent. It owns canonicalization, schemas, reconstruction, admission policy, numerical methods, and the supported public Python API. `infrastructure/` owns mechanisms whose correctness is important but whose meaning is not scientific: bounded memory, content-addressed storage, authoritative SQLite write windows, claims, finalization, and recovery. `services/` composes those two layers with persistent Django records. `web_infra/` adapts services to middleware, HTML, HTMX fragments, caching, and the versioned JSON surface. `workflows/models/` remains the authoritative Django app and schema; `frontend/` contains presentation only.
+`foundation/` defines canonical bytes, scientific schemas, semantic identity,
+reconstruction, numerical policy, admission, binary interchange, and the stable Python API.
+It imports neither Django nor application services. That is more than a directory choice:
+architecture tests reject dependencies that would allow an HTTP view or database model to
+quietly redefine scientific meaning.
 
-A scientific request follows a deliberate path. The HTTP adapter parses a declaration and passes it to the scientific service. The service asks the foundation to close and verify the declaration against a reloaded, reverified semantic state. Only then does it persist an admission and job. A foreground worker claims that job with a fenced ownership generation, executes the pure foundation method, publishes immutable result bytes, and atomically marks the database attempt successful. A later read verifies the artifact again before creating an HTML or JSON representation. Each boundary is explicit in source rather than hidden in a model `save()` method or middleware side effect.
+`infrastructure/` provides mechanisms whose correctness matters to the foundation but whose
+implementation should not alter it: scoped memory borrowing, immutable artifact publication,
+bounded SQLite write windows, worker claims, fencing, and reconciliation. `services/` joins
+those mechanisms to persistent records. `web_infra/` adapts the same services to HTML, HTMX,
+and versioned JSON. `frontend/` contains presentation assets; `workflows/` retains the Django
+application label, models, forms, migrations, commands, and tests; `reliability_lab/` contains
+the Django project configuration and process entry points.
 
-## Repository organization
+This separation costs a few more calls and types than putting everything in a view or model.
+It buys one property the experiment needs: the same evidence and declaration can be checked
+without starting Django, while Django can record operational history without becoming the
+authority for a scientific result.
+
+## From observations to evidence
+
+The reference corpus contains sixteen observations: four hourly periods for each of four
+sensors. Every observation declares its source, timestamp, variable, unit, value, quality,
+and missingness. Bravo's third observation is explicitly missing. Charlie's fourth is marked
+anomalous. Four declared edges form the graph used by the neighborhood experiment. No edge
+is inferred from coordinates or proximity.
+
+Why be so strict about a toy dataset? Consider an empty value arriving through a form. It
+could mean a missing observation, a parsing error, or an omitted field. If reconstruction
+silently chooses one interpretation, the resulting hash is stable but its meaning is not.
+The schema in [`foundation/schema/evidence.py`](foundation/schema/evidence.py) therefore
+requires `value=null` and `missing=true` to agree. It rejects duplicate or self-referential
+relationships and edges to unknown sensors before any semantic state exists.
+
+Registration creates two related identities. The **content identity** covers the values and
+declared relationships. The **provenance identity** covers the source and generator context
+while binding back to that content. Equal observations from two declared origins may
+reconstruct to the same semantic state without erasing their different provenance. This is
+why provenance, content, and state are separate records instead of one convenient hash.
+
+## Canonical bytes before hashes
+
+A SHA-256 digest only identifies the bytes it receives. It says nothing about whether two
+equivalent Python dictionaries were serialized in the same order, whether duplicate JSON
+keys were ignored, or whether `-0.0` and `0` were treated consistently. Stable identities
+therefore begin with the restricted canonical profile in
+[`foundation/contracts/canonical.py`](foundation/contracts/canonical.py).
+
+The profile emits compact UTF-8 JSON, orders object keys by UTF-16 code units, rejects
+duplicate keys and binary floating-point tokens, normalizes explicit-offset timestamps to
+UTC, and represents schema-controlled decimals as bounded strings. Unicode is preserved
+exactly rather than normalized, so NFC and NFD spellings remain distinct source values.
+
+An identity has the visible form:
 
 ```text
-foundation/       scientific contracts, schemas, reconstruction, governance, methods
-infrastructure/   memory, preservation, persistence, orchestration
-services/         scientific and workflow application services
-web_infra/        middleware, caching, API adapters, HTML views
-workflows/        Django models, forms, migrations, commands, and tests
-frontend/         templates, CSS, and the vendored HTMX browser asset
-reliability_lab/  Django settings and process entry points
-docs/             deeper contracts, conformance evidence, and experiment descriptions
+<domain>:sha256:<digest>
 ```
 
-The directories are dependency boundaries, not categories chosen for visual neatness. Foundation modules may use standard-library and declared scientific contracts, but cannot import Django or application layers. Infrastructure may depend on public foundation contracts, while it must not define scientific interpretation. Services own use-case coordination. Web code may call services but cannot reconstruct state or write artifact bytes directly. Automated AST-based tests in [`test_architecture_boundaries.py`](workflows/tests/test_architecture_boundaries.py) enforce these rules and detect static import cycles.
+The digest covers a framed envelope containing the domain, schema version, and canonical
+payload. Domain separation prevents identical payload bytes from being interpreted as both
+evidence and a result. Versioning prevents a later contract from inheriting an old identity
+by accident. Database UUIDs remain useful locators, but they are not scientific identities:
+two jobs can produce the same result identity, while one mutable row can retain its UUID as
+its state changes.
 
-Within those layers, files are organized by one responsibility. For example, [`infrastructure/memory/`](infrastructure/memory/) separates allocation from scoped borrowing and handle identity; [`services/scientific/`](services/scientific/) separates artifact registration, investigation admission, fenced jobs, and result finalization; and [`web_infra/caching/`](web_infra/caching/) separates cache identity from response rendering. The historical `workflows` application label and migration history remain unchanged, so the structural refactor does not create a fictitious database migration.
+## Manifests make reconstruction explicit
 
-## Evidence and provenance
+Registered evidence is still not semantic state. A manifest binds the evidence content,
+provenance, and reconstruction contract that will interpret it. Reconstruction then creates
+stable sensor entities, explicit edges, and time-ordered observations. The resulting record
+is serialized, assigned a `semantic-state` identity, and immediately verified by loading it
+through the public contract again.
 
-Evidence is accepted through an exact versioned schema in [`foundation/schema/evidence.py`](foundation/schema/evidence.py). An observation names its source, sensor, timestamp, variable, unit, value, quality, and missingness. Missingness is not inferred from an empty string or a failed conversion: `value=null` and `missing=true` must agree. Relationships are explicit, bounded, non-self-referential edges between known sensors. Quality labels and provenance remain attached to source observations rather than being replaced by a derived numerical summary.
+That extra manifest may seem unnecessary when the reconstruction code is local. It answers
+a question that a function name alone cannot: *which versioned rules and exact evidence were
+used to build this state?* If an observation changes, the content and state identities
+change. If only the declared source changes, provenance and manifest identities change while
+semantic state may remain equal. The tests exercise both cases.
 
-Registration in [`foundation/evidence/registration.py`](foundation/evidence/registration.py) creates two related identities. The content identity covers scientific values and explicit relationships; the provenance identity covers the source declaration and generator context while binding back to content. This allows equivalent content from different declared origins to share semantic meaning without erasing provenance. Neither identity authorizes a calculation by itself. Evidence remains an immutable input, while manifests, reconstructed state, admissions, attempts, and results are separate derived records.
-
-## Canonicalization and identity
-
-Stable hashing requires more than calling SHA-256 on an ordinary Python dictionary. JSON key order, duplicate keys, floating-point spellings, Unicode validity, timestamps, and negative zero can otherwise make logically confusing byte representations. The restricted profile in [`foundation/contracts/canonical.py`](foundation/contracts/canonical.py) accepts only its documented JSON types, sorts keys by UTF-16 code units, rejects duplicate keys and floating-point tokens, normalizes explicit-offset timestamps to UTC, and represents schema-defined decimals as bounded canonical strings.
-
-Identities use the visible form `<domain>:sha256:<digest>`. The hashed envelope includes a domain, schema version, and canonical payload with unambiguous framing. Domain separation prevents identical bytes from accidentally giving an evidence object and a result object the same meaning. Schema versions make contract evolution an explicit identity change. Database UUIDs, filenames, and URLs are still useful locators, but they are not semantic identity: they can change without changing content, or remain unchanged while mutable content changes. See [`foundation/contracts/identities.py`](foundation/contracts/identities.py) and [the detailed contract](docs/CONTRACTS.md).
-
-## Reconstruction and manifests
-
-A manifest binds one admitted evidence-content identity, its provenance identity, and the versioned reconstruction rules. It answers “which declared rules produced this state?” rather than treating a Python function name as sufficient provenance. Manifest construction lives in [`foundation/reconstruction/manifests.py`](foundation/reconstruction/manifests.py).
-
-Reconstruction in [`foundation/reconstruction/state.py`](foundation/reconstruction/state.py) creates stable sensor entities, maps explicit relationships to entity edges, and attaches each observation to the corresponding entity. It does not infer edges from spatial proximity. The resulting immutable record is verified by recomputing its complete semantic identity and checking for duplicate entities, dangling edges, and unknown observation references. A provenance-only change can leave semantic state unchanged; changing an observation, relationship, or reconstruction rule changes the relevant identity. Strict loading never trusts serialized state merely because it was previously written.
-
-## Scientific computation and numerical policy
-
-The time-window method selects a declared variable and unit over an inclusive temporal window, groups observations by requested sensor, and computes a mean. The graph method starts from one target sensor, uses only explicit one-hop edges and their declared weights, and computes a weighted mean over the selected window. Each method has a versioned name and an isolated implementation under [`foundation/computation/`](foundation/computation/).
-
-Both methods use `Decimal` with precision 28, `ROUND_HALF_EVEN`, and six-place output quantization before canonical rendering. The declaration must choose whether explicit missing values are excluded or propagated. Admission rejects incompatible method parameters, unknown variables or units, unavailable targets, invalid windows, and resource budgets that would admit too many targets or records. Tests compare representative results to independent decimal calculations. These controls establish numerical repeatability within the stated policy; they do not establish calibrated uncertainty or scientific fitness for a real field.
-
-## Memory ownership and borrowing
-
-[`infrastructure/memory/arena.py`](infrastructure/memory/arena.py) owns allocation and byte accounting. A [`Handle`](infrastructure/memory/handles.py) contains a slot and generation, so releasing and reusing a slot invalidates old references instead of creating an accidental alias. Scoped [`Borrow`](infrastructure/memory/borrowing.py) tokens mediate access: multiple shared readers may coexist, while an exclusive writer requires a mutable allocation with no active reader or writer. Sealing returns owned immutable bytes and forbids later writes; release requires no active borrow and decrements the arena quota.
-
-The arena is a runtime experiment in explicit ownership. It does not turn Python into Rust, does not provide compile-time lifetime checking, and does not defend against a hostile process. Its guarantee is narrower and testable: application callers receive no raw address or writable `memoryview`, expired tokens and stale generations fail, and quota or borrow conflicts raise controlled errors. Binary serialization can optionally stage through the narrow arena protocol, while its scientific format remains independent of the concrete arena implementation.
-
-## Binary interoperability
-
-The observation format in [`foundation/binary/observations.py`](foundation/binary/observations.py) is a portable file contract, not a native ABI. Its 52-byte little-endian header contains an eight-byte magic, format version, flags, record count, payload length, and SHA-256 payload checksum. Each 40-byte record contains a bounded ASCII sensor identifier, UTC epoch milliseconds, a signed fixed-point value scaled by one million, an explicit missing flag, a quality code, and reserved zero bytes.
-
-Encoding sorts observations by sensor and timestamp. Decoding checks magic, version, flags, counts, exact lengths, checksum, codes, missing sentinel agreement, identifier encoding, and timestamp precision before returning typed records. The standard sizes and explicit endianness are intended for reproducible interchange across platforms; they do not expose a C struct layout, pointer, compiler alignment, or in-process calling convention. Golden vectors protect the byte layout from accidental change during refactoring.
-
-## Immutable preservation
-
-The content-addressed store in [`infrastructure/preservation/store.py`](infrastructure/preservation/store.py) accepts bounded non-empty bytes and derives a reference binding type, schema, size, payload digest, and domain-separated identity. Publication writes a staged file, flushes it, and exposes it with a same-filesystem hard link. If another writer wins, the existing bytes must be identical. Reads are incremental and bounded, then verify size, checksum, and complete artifact identity. Corruption is rejected rather than falling back to mutable database JSON.
-
-Filesystem publication and SQLite registration are intentionally separate persistence domains; no transaction can atomically commit both on ordinary local filesystems. A crash can therefore leave a valid but unregistered block, or metadata whose bytes later disappear. [`infrastructure/persistence/reconciliation.py`](infrastructure/persistence/reconciliation.py) reports orphans, marks registered objects missing or corrupt, and re-verifies healthy objects. It never silently promotes or deletes an artifact. Optional quarantine is explicit. The original evidence, reconstructed state, and results remain distinct immutable objects.
-
-## Execution governance
-
-An investigation is not executable merely because its JSON parses. The pipeline in [`foundation/governance/`](foundation/governance/) performs five stages. Structural closure requires exact fields and supported versions. State verification reloads and rechecks the declared semantic state. Semantic verification checks targets, variable/unit compatibility, and the time interval. Method verification checks the versioned algorithm, parameters, and missing-data policy. Resource verification enforces the declaration’s bounded target and record envelope.
-
-Every rejection has a stage and stable code, and no `Admission` exists until all stages succeed. The admission binds the investigation, state, and computation identities. Django services in [`services/scientific/investigations.py`](services/scientific/investigations.py) persist that immutable declaration and enforce idempotency. Reusing a key for the same computation returns the existing authoritative job; reusing it for a different computation fails explicitly.
-
-## Orchestration and recovery
-
-Jobs move through `admitted → running → succeeded|failed|interrupted`. SQLite does not offer functional `SELECT FOR UPDATE` row locking, so claims use short authoritative write windows and atomic conditional updates. The shared transaction mechanism in [`infrastructure/persistence/transactions.py`](infrastructure/persistence/transactions.py) uses `BEGIN IMMEDIATE` only around bounded SQLite state changes and retries lock contention within a fixed policy.
-
-A scientific claim increments a generation, creates a random owner token, and records both on an execution attempt. Finalization succeeds only if job state, attempt number, claim generation, and owner token still match. That fencing prevents an obsolete worker from committing after an acknowledged recovery and later claim. Recovery is deliberately operator-controlled: elapsed time alone cannot prove a process died, so a running attempt is marked interrupted only after external confirmation. Retry is a separate transition. Subprocess tests terminate real workers before and after important commit boundaries and inspect the reopened database and store.
-
-This is a single-host laboratory, not a distributed queue. It does not provide consensus, leases across machines, automatic retry of arbitrary side effects, or distributed exactly-once execution. The demonstrated result is narrower: under the local SQLite and single-worker assumptions, authoritative transitions are durable, fenced, and inspectable.
-
-## Caching
-
-Caching is permitted only after a job has succeeded and, for scientific jobs, after its result artifact passes read-time verification. The cache identity includes job identity, result artifact identity, and representation variant. Full HTML and HTMX fragments cannot cross because the response varies on `HX-Request`; mutable, failed, and interrupted jobs bypass result caching. The policy is in [`web_infra/caching/identities.py`](web_infra/caching/identities.py), while response rendering is isolated in [`responses.py`](web_infra/caching/responses.py).
-
-A cache hit is an optimization, not authority. Clearing the cache changes latency, not the scientific result or durable state. A stale representation cannot be reused after a result identity change because the key changes. The laboratory uses Django’s local-memory backend, so it makes no claim about shared-cache isolation across processes or deployments.
-
-## Django middleware and HTMX
-
-Django’s security middleware runs first, followed by request tracing, common request handling, CSRF, django-htmx request classification, and the demonstration guard. Correlation identifiers are accepted only under a bounded header-safe grammar; invalid values are replaced. Tracing records entry, guard, and view observations and returns correlation, elapsed-time, and `Server-Timing` headers. The guard demonstrates a middleware short circuit without owning any domain transition. These responsibilities are separate under [`web_infra/middleware/`](web_infra/middleware/).
-
-HTMX requests reuse ordinary Django forms, URLs, CSRF tokens, and service functions; they only select fragment responses. Full-page HTML remains a fallback, including keyboard and non-JavaScript form semantics. The `/api/v1/` endpoints expose versioned JSON envelopes for state, admission, and result retrieval. API adapters translate controlled service failures but do not implement reconstruction or persistence themselves.
-
-## Complete experimental walkthrough
-
-Start at `/lab/` and seed the fictional reference run. Registration publishes evidence, manifest, and state artifacts, then creates a `ResearchRun` linking their verified identities. The reconstructed state contains four entities, explicit graph edges, and a short time series with declared missingness and quality. Its accepted identity is:
+The accepted reference state is:
 
 ```text
 semantic-state:sha256:6edea8182bab6fe1d6b9b46fbeab87332e60b6a21596ffb0a5093b71ac188a83
 ```
 
-Admit the default time-window investigation for `sensor_alpha` and `sensor_bravo`, execute the job, and inspect the immutable result. Alpha has four available values and mean `11.5`. Bravo has three available values, one explicit missing observation, and mean `21.333333` under the `exclude` policy. The verified result identity is:
+## A computation is a closed declaration
+
+The reference study implements `time-window-mean/1` and
+`graph-neighborhood-mean/1`. Both use `Decimal` with precision 28,
+`ROUND_HALF_EVEN`, and six-place result quantization. Missing values are either excluded or
+propagated according to the declaration; the implementation never chooses a policy from the
+shape of the data.
+
+Before execution, the verification pipeline closes five questions in order:
+
+1. **Structural:** are the fields, versions, timestamps, and value shapes valid?
+2. **State:** does the declared state artifact load and verify to the stated identity?
+3. **Semantic:** do the targets, variable, unit, and time window exist and agree?
+4. **Method:** is the versioned method valid with these parameters and missing-data rules?
+5. **Resource:** are target and record counts within the admitted budget?
+
+Only a declaration that passes all five stages becomes an `Admission`. Parsing a request is
+not authorization, and possessing a state artifact is not authorization. The admission
+binds the investigation identity, state identity, and computation identity that a worker may
+execute.
+
+## The worked investigation
+
+The default declaration selects all four periods for `sensor_alpha` and
+`sensor_bravo`, requests the time-window mean, and chooses the `exclude` policy for explicit
+missingness.
+
+Alpha contributes `10`, `11`, `12`, and `13`, producing `11.5`. Bravo contributes `20`,
+`21`, and `23`; its third observation remains recorded as missing and is excluded by policy,
+producing `21.333333`. The result payload binds those values to the admission, computation,
+and semantic-state identities. Its verified identity is:
 
 ```text
 result:sha256:7d32c02fdb42164d1d1f681906afbe27c380240ec61dc57ba62923ced7adf291
 ```
 
-`python manage.py run_reference_experiment` performs the same admitted computation under two independent job identities. It reports identical result identities while preserving both attempt histories. `reconcile_artifacts` then verifies the registered bytes. A reviewer can inspect the SQLite lifecycle through the browser, compare the result artifact with the job, and rerun the golden conformance tests without relying on a pre-existing runtime database.
+`run_reference_experiment` admits the same declaration under two independent idempotency
+keys. The two jobs have different UUIDs and attempt histories, but the result identity is the
+same because job identity is absent from the scientific result contract. Reproducibility is
+thus tested across independent operational records rather than by hashing one output twice.
 
-## Validation and conformance
+## Memory ownership as a runtime experiment
 
-The suite combines schema and golden-vector tests, independent decimal checks, property tests, memory lifecycle tests, binary corruption cases, storage races, transaction rollback, concurrent HTTP submissions, claim fencing, recovery, cache variation, API contracts, and browser workflows. Process tests use actual subprocess termination at preservation, admission, calculation, finalization, result-commit, and recovery boundaries. Chromium tests exercise ordinary page and HTMX paths. Architecture tests enforce layer imports and reject static cycles.
+Binary work often turns lifetime mistakes into stale references or overlapping mutation.
+The arena in [`infrastructure/memory/`](infrastructure/memory/) makes those rules visible in
+ordinary Python. An allocation receives a slot and generation. Shared borrows may coexist;
+an exclusive borrow requires a mutable allocation with no readers or writer. A borrow token
+expires when its context exits. Sealing produces owned immutable bytes. Release requires no
+active borrow and invalidates the generation before the slot can be reused.
 
-CI runs on Windows and Ubuntu with Python 3.12 and 3.13. Cross-platform golden identities matter because accidental platform-dependent ordering, timestamps, or binary packing would invalidate the experiment. The tests demonstrate the named fixtures and failure boundaries; their count is not evidence for arbitrary workloads, hostile multi-user deployment, or all possible filesystem failures. Detailed procedures and vectors are in [`docs/CONFORMANCE.md`](docs/CONFORMANCE.md) and [`docs/EXPERIMENTS.md`](docs/EXPERIMENTS.md).
+For example, a handle for slot 2, generation 4 cannot access a later allocation that happens
+to reuse slot 2 as generation 5. A writer requested while readers are active receives a
+controlled `BorrowConflict`, and a token used after its context receives a
+`MemoryContractError`.
 
-## Installation and use
+The terminology is informed by the ownership and borrowing presentation in
+[The Rust Programming Language](https://doc.rust-lang.org/book/ch04-02-references-and-borrowing.html),
+but the guarantee is different. Rust checks references and lifetimes during compilation.
+This arena checks cooperating callers at runtime inside one Python process. It provides no
+native memory isolation and exposes no raw address or writable `memoryview`.
 
-Python 3.12 or 3.13 is supported. On Windows PowerShell:
+## A portable binary record, not a native ABI
+
+The observation format is designed for reproducible interchange. Its 52-byte little-endian
+header records an eight-byte magic value, format version, flags, record count, payload
+length, and a SHA-256 checksum. Each 40-byte record contains a bounded ASCII sensor ID, UTC
+epoch milliseconds, a signed fixed-point value scaled by one million, explicit missing and
+quality fields, and reserved zero bytes.
+
+Encoding sorts by sensor and timestamp. Decoding checks the complete length, checksum,
+codes, sentinel agreement, identifier encoding, and timestamp precision. Bit corruption,
+truncation, unknown flags, and sub-millisecond timestamps fail instead of being repaired or
+rounded silently.
+
+This is an interchange contract, not a native ABI. It defines bytes on disk; it does not
+define pointers, compiler alignment, an in-process calling convention, or a C structure.
+Golden vectors protect that distinction across Windows, Linux, and supported Python
+versions.
+
+## Immutable bytes and mutable records
+
+Scientific artifacts are stored by content digest. Publication writes a temporary file,
+flushes it, and exposes it with a same-filesystem hard link. If another writer wins the same
+path, the bytes must match. Reads are incremental and bounded, then recheck size, digest,
+and full artifact identity. The design follows the general observation that immutable
+structures are easier to reason about after failure; the DBDB chapter in *500 Lines or
+Less* develops that idea through a small persistent system
+([DBDB: Dog Bed Database](https://aosabook.org/en/500L/dbdb-dog-bed-database.html)).
+
+SQLite records what an artifact means and how it participates in a run. The filesystem
+stores the bytes. No local transaction can commit both domains atomically. A process can die
+after publishing a result block but before registering it or completing the job row.
+
+The laboratory treats that gap as evidence, not success. Reconciliation reports the extra
+block as an orphan. It may be quarantined by an explicit operator action, but it cannot be
+promoted automatically because no committed admission, claim, or finalization says that it
+is authoritative. Conversely, a registered artifact whose bytes are missing or corrupt is
+marked accordingly and cannot be served from database JSON as a fallback.
+
+## Claims, transactions, and fencing
+
+Jobs move through `admitted → running → succeeded|failed|interrupted`. SQLite's
+`select_for_update()` does not provide row locking, so worker claims use short
+`BEGIN IMMEDIATE` write windows plus conditional updates. Calculation happens outside that
+critical section. The commit process remains SQLite's responsibility; its atomic-commit
+documentation is useful background for understanding why application code should keep the
+transaction boundary explicit and short
+([Atomic Commit in SQLite](https://www.sqlite.org/atomiccommit.html)).
+
+A scientific claim increments a generation and creates a random owner token. Finalization
+must match the job state, attempt number, generation, and token. Suppose a worker stalls,
+the owner confirms that it has stopped, and recovery marks the attempt interrupted. A new
+claim receives a new generation and token. Even if the old process resumes, its conditional
+finalization cannot match the current ownership record.
+
+Age alone never proves that a process is dead. Recovery therefore requires out-of-band
+confirmation and never retries arbitrary external effects automatically. Process tests kill
+real Python subprocesses before claim commit, during calculation, after artifact
+publication, after result commit, and during recovery. They reopen the database and store to
+observe what survived. This resembles the case-study approach used to explain component
+responsibilities and failure handling in *A Continuous Integration System*
+([500 Lines or Less](https://aosabook.org/en/500L/a-continuous-integration-system.html)),
+while the implementation here remains deliberately single-host.
+
+## Cache and HTTP delivery remain subordinate
+
+A cache entry is a rendered representation, not a scientific record. Only a succeeded job
+with a reverified result artifact can be cached. The key includes the job, artifact identity,
+and representation variant. Full HTML and HTMX fragments cannot cross because responses
+vary on `HX-Request`; mutable, failed, and interrupted jobs bypass result caching.
+
+Django applies middleware top-down on the request and in reverse on the response. A
+component may return early without invoking the inner chain, which is exactly what the
+demonstration guard does for `X-Lab-Short-Circuit: 1`
+([Django middleware documentation](https://docs.djangoproject.com/en/5.2/topics/http/middleware/)).
+The observed normal trace is:
+
+```text
+trace.enter>guard.pass>view.home>trace.exit
+```
+
+The short-circuit trace is:
+
+```text
+trace.enter>guard.block>trace.exit
+```
+
+Correlation IDs are accepted only under a bounded header-safe grammar. The trace middleware
+also reports elapsed time and `Server-Timing`. HTMX requests use the same URLs, forms, CSRF
+tokens, and services as ordinary HTML; they differ only in the returned fragment. The JSON
+API under `/api/v1/` is another adapter over those services, not a second computation path.
+
+## Run the laboratory
+
+Python 3.12 and 3.13 are the qualified versions. The application is intended for trusted,
+single-user use on loopback.
+
+### Windows PowerShell
 
 ```powershell
 py -3.12 -m venv .venv
@@ -150,7 +289,7 @@ py -3.12 -m venv .venv
 .\.venv\Scripts\python.exe manage.py runserver 127.0.0.1:8000
 ```
 
-On Linux or macOS:
+### Linux
 
 ```bash
 python3.12 -m venv .venv
@@ -159,17 +298,33 @@ python3.12 -m venv .venv
 ./.venv/bin/python manage.py runserver 127.0.0.1:8000
 ```
 
-Open <http://127.0.0.1:8000/lab/> for the scientific path or <http://127.0.0.1:8000/> for the dynamic workflow reliability experiment. Useful commands:
+Open <http://127.0.0.1:8000/lab/> for the scientific investigation. The root
+<http://127.0.0.1:8000/> exposes the smaller dynamic-workflow reliability experiment.
+
+The management commands each answer a different operational question:
 
 ```powershell
+# Build the synthetic evidence, execute two independent jobs, and compare results.
 .\.venv\Scripts\python.exe manage.py run_reference_experiment
+
+# Reverify registered artifact bytes and report missing, corrupt, or orphaned blocks.
 .\.venv\Scripts\python.exe manage.py reconcile_artifacts
+
+# Claim and execute one admitted workflow job.
 .\.venv\Scripts\python.exe manage.py run_jobs --once
-.\.venv\Scripts\python.exe manage.py recover_jobs --older-than-seconds 60 --confirm-worker-stopped
+
+# Interrupt stale jobs only after confirming that their workers have stopped.
+.\.venv\Scripts\python.exe manage.py recover_jobs `
+  --older-than-seconds 60 --confirm-worker-stopped
+
+# Measure the fixed synthetic workload; this is not a capacity benchmark.
 .\.venv\Scripts\python.exe manage.py benchmark_lab --iterations 25
 ```
 
-For development checks:
+Replace `.\.venv\Scripts\python.exe` with `./.venv/bin/python` on Linux.
+
+For a development environment, install `requirements-dev.txt`, install Playwright's
+Chromium browser, and run the same checks used by CI:
 
 ```powershell
 .\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
@@ -181,25 +336,49 @@ For development checks:
 .\.venv\Scripts\python.exe -m pip check
 ```
 
-The benchmark uses a fixed small workload and reports descriptive local timings. It is not a capacity or scalability result.
+See [conformance](docs/CONFORMANCE.md) for the independent expected values and
+[experiments](docs/EXPERIMENTS.md) for the failure-injection evidence.
 
-## Limitations and security
+## What the evidence establishes
 
-The server is intended for trusted local, single-user use and should remain bound to loopback. Django’s CSRF and security middleware are enabled, request bodies and scientific records are bounded, and errors avoid exposing arbitrary internal exceptions. There is no authentication, authorization model, TLS termination, tenant isolation, or hardened shared deployment contract. SQLite and the local-memory cache are selected to make transaction and failure behavior observable, not to stand in for a production distributed system.
+The checked-in suite covers canonical and numerical vectors, schema rejection, memory
+lifecycle properties, binary corruption, artifact races, transaction rollback, independent
+SQLite connections, real subprocess termination, cache variation, versioned API behavior,
+and six Chromium workflows. GitHub Actions runs the complete suite on Windows and Ubuntu
+with Python 3.12 and 3.13. The current pre-release branch was last remotely qualified at
+`c040b69833ef97bb68523ad85558ecb3da1f2e3c`; documentation changes require a fresh exact-SHA
+run before release.
 
-Scientific data are synthetic, methods are illustrative, and graph adjacency is not a claim of physical connectivity. Python’s arena demonstrates runtime ownership checks but cannot provide native memory isolation or Rust-style compile-time lifetimes. No Rust or other native extension is included; a native boundary would need an independently justified ABI, toolchain, packaging, and conformance program. The detailed WellNet research material that informed broader study is excluded and is not required to understand or run this repository.
+These experiments support bounded claims about this implementation and its fixtures. They
+do not provide distributed consensus, arbitrary external-effect exactly-once execution,
+Rust's compile-time ownership guarantees, a production multi-user security model, or
+validated physical simulation. SQLite, a local artifact directory, and Django's local-memory
+cache were chosen to expose failure boundaries on one host, not to imitate a distributed
+platform. The server has no authentication, TLS termination, tenant isolation, or shared
+deployment contract.
 
-## References and license
+The scientific corpus is fictional. Deterministic replay shows that declared bytes and
+policies lead to the same result; it does not show that graph adjacency represents physical
+communication, that the reference means predict a real process, or that a software invariant
+is a scientific conclusion.
 
-Repository documentation:
+## Documentation and sources
 
 - [Architecture and authority boundaries](docs/ARCHITECTURE.md)
-- [Canonical, memory, binary, persistence, and API contracts](docs/CONTRACTS.md)
-- [Golden vectors and conformance procedure](docs/CONFORMANCE.md)
-- [Adversarial experiments and measured results](docs/EXPERIMENTS.md)
-- [Reviewed publication manifest](docs/PUBLICATION_MANIFEST.md)
+- [Normative contracts](docs/CONTRACTS.md)
+- [Conformance vectors and reproduction](docs/CONFORMANCE.md)
+- [Adversarial experiments](docs/EXPERIMENTS.md)
 - [Reference and licensing boundary](docs/REFERENCE_BOUNDARY.md)
+- [Reviewed publication manifest](docs/PUBLICATION_MANIFEST.md)
+- [Editorial research note](docs/EDITORIAL_RESEARCH.md)
+- [v0.1.0 release notes](RELEASE_NOTES.md)
 
-The implementation follows Django’s documentation for [middleware](https://docs.djangoproject.com/en/5.2/topics/http/middleware/), [transactions](https://docs.djangoproject.com/en/5.2/topics/db/transactions/), [caching](https://docs.djangoproject.com/en/5.2/topics/cache/), and [security](https://docs.djangoproject.com/en/5.2/topics/security/), plus the [HTMX documentation](https://htmx.org/docs/). The canonical profile is informed by [RFC 8785](https://www.rfc-editor.org/rfc/rfc8785.html) but deliberately excludes binary floating-point serialization and does not claim complete JCS compatibility.
+The explanatory documents and compact reference documents are kept separate following the
+useful distinction described by [Diátaxis](https://diataxis.fr/reference-explanation/): the
+README and architecture chapter develop understanding, while contracts and conformance
+material are designed for consultation during implementation and review.
 
-Independently authored code is licensed under [MIT](LICENSE). The vendored HTMX asset keeps its Zero-Clause BSD terms in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). Restricted reference source and the detailed local research report are not part of this repository, license, or publication manifest.
+Independently authored code is licensed under [MIT](LICENSE). The vendored HTMX asset keeps
+its Zero-Clause BSD terms; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). The restricted
+WellNet archive and detailed local research report are excluded from the repository and are
+not required to understand or run the laboratory.

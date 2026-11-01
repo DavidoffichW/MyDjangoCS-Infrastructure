@@ -31,6 +31,11 @@ The digest input is the unambiguous byte framing
 bytes in unrelated contracts from sharing meaning. Schema versions are identity inputs;
 compatibility is explicit rather than inferred.
 
+Worked example: the accepted reference state is displayed as
+`semantic-state:sha256:6edea8182bab6fe1d6b9b46fbeab87332e60b6a21596ffb0a5093b71ac188a83`.
+The `semantic-state` domain and `mydjangocs.state/1` schema are both inputs to the digest;
+hashing the payload alone is not a conforming identity calculation.
+
 ## Evidence and reconstruction
 
 Evidence v1 accepts at most 5,000 observations and 10,000 relationships. Identifiers are
@@ -42,6 +47,11 @@ point to an unknown sensor.
 Reconstruction sorts inputs, derives stable entity and edge identities, separates semantic
 content from provenance, and returns frozen Python records. It does not infer a relationship
 from proximity. Verification recomputes the complete state identity before use.
+
+Worked example: the reference evidence records Bravo's third period as `value=null` and
+`missing=true`. With `missing_policy="exclude"`, its mean uses `20`, `21`, and `23` and is
+`21.333333`. Omitting the record or changing only its display would not be equivalent
+evidence.
 
 ## Numerical methods
 
@@ -109,6 +119,11 @@ Admission runs five named stages in order:
 Each rejection has a stable stage and code. Authorization exists only after all five stages
 complete.
 
+Worked example: a syntactically valid declaration naming `sensor_unknown` passes JSON
+parsing but fails the semantic stage. A declaration for known targets with more than the
+admitted record budget fails the resource stage. Neither failure creates an admission or a
+job.
+
 ## Stable Python and HTTP surfaces
 
 `foundation.public_api.FoundationAPI` is the Django-independent composition root. Its API
@@ -125,3 +140,9 @@ The HTTP adapter exposes:
 
 All are bounded by the same schemas and services as the HTML path. State and result reads
 reverify preservation bytes before returning success.
+
+The result endpoint is not an alternate store. For a succeeded reference job it reloads the
+registered artifact and verifies the embedded identity before returning
+`result:sha256:7d32c02fdb42164d1d1f681906afbe27c380240ec61dc57ba62923ced7adf291`.
+A missing or corrupt block produces a controlled error even if the job row still contains a
+JSON summary.

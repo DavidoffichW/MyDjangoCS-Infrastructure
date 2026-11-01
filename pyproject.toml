@@ -1,10 +1,43 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "mydjangocs-infrastructure"
-version = "0.1.0.dev0"
-description = "A small lab for reliable Django and HTMX workflow execution"
+version = "0.1.0"
+description = "A deterministic systems laboratory for scientific evidence, execution, and recovery"
 readme = "README.md"
 license = "MIT"
+license-files = [
+    "LICENSE",
+    "THIRD_PARTY_NOTICES.md",
+    "frontend/static/vendor/htmx/LICENSE",
+]
 requires-python = ">=3.12"
+dependencies = [
+    "Django>=5.2,<5.3",
+    "django-htmx>=1.29,<2",
+]
+
+[tool.setuptools]
+include-package-data = false
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = [
+    "foundation*",
+    "frontend*",
+    "infrastructure*",
+    "reliability_lab*",
+    "services*",
+    "web_infra*",
+    "workflows*",
+]
+exclude = ["deterministic_lab*", "research-output*", "runtime*"]
+
+[tool.setuptools.package-data]
+frontend = ["templates/**/*.html", "static/**/*.css", "static/vendor/htmx/*"]
+workflows = ["tests/golden/*.json"]
 
 [tool.ruff]
 line-length = 100
