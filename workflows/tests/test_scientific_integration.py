@@ -6,23 +6,23 @@ from pathlib import Path
 from django.db import DatabaseError, IntegrityError, transaction
 from django.test import TestCase
 
-from deterministic_lab.errors import AdmissionError
-from workflows.models import AdmissionRecord, ArtifactRecord, Job, ResearchRun
-from workflows.scientific_services import (
-    _admission_from_record,
-    _artifact_reference,
-    admit_investigation,
-    claim_scientific_job,
-    default_investigation,
-    execute_scientific_job,
-    finalize_scientific_result,
-    foundation_api,
-    interrupt_scientific_job,
+from foundation.contracts.errors import AdmissionError
+from services.scientific.artifacts import (
+    artifact_reference,
     reconcile_artifacts,
-    result_cache_identity,
     seed_reference_run,
 )
-from workflows.services import IdempotencyConflict, InvalidTransition, requeue_job
+from services.scientific.composition import foundation_api
+from services.scientific.investigations import admit_investigation, default_investigation
+from services.scientific.jobs import (
+    admission_from_record,
+    claim_scientific_job,
+    execute_scientific_job,
+    interrupt_scientific_job,
+)
+from services.scientific.results import finalize_scientific_result, result_cache_identity
+from services.workflows import IdempotencyConflict, InvalidTransition, requeue_job
+from workflows.models import AdmissionRecord, ArtifactRecord, Job, ResearchRun
 
 
 class ScientificIntegrationTests(TestCase):
@@ -46,7 +46,7 @@ class ScientificIntegrationTests(TestCase):
         self.assertFalse(created)
         self.assertEqual(again.id, self.run.id)
         self.assertEqual(ArtifactRecord.objects.count(), 3)
-        state = foundation_api().load_state(_artifact_reference(self.run.state_artifact))
+        state = foundation_api().load_state(artifact_reference(self.run.state_artifact))
         self.assertEqual(state.identity, self.run.state_identity)
         self.assertEqual(self.run.summary["observations"], 16)
         self.assertEqual(self.run.summary["missing_observations"], 1)
@@ -89,8 +89,8 @@ class ScientificIntegrationTests(TestCase):
         admitted = self.admit()
         first_claim = claim_scientific_job(admitted.job.id)
         job = Job.objects.select_related("admission__investigation").get(pk=admitted.job.id)
-        state = foundation_api().load_state(_artifact_reference(self.run.state_artifact))
-        result = foundation_api().execute(_admission_from_record(job.admission), state)
+        state = foundation_api().load_state(artifact_reference(self.run.state_artifact))
+        result = foundation_api().execute(admission_from_record(job.admission), state)
 
         interrupt_scientific_job(
             job.id,
@@ -133,7 +133,7 @@ class ScientificIntegrationTests(TestCase):
 
     def test_reconciliation_reports_corruption_and_orphans_without_deleting(self):
         api = foundation_api()
-        state_reference = _artifact_reference(self.run.state_artifact)
+        state_reference = artifact_reference(self.run.state_artifact)
         api.store.path_for(state_reference).write_bytes(b"corrupt")
         orphan = api.store.publish("result", "mydjangocs.result/1", b"orphan")
         report = reconcile_artifacts()

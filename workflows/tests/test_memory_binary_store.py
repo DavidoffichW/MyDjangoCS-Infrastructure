@@ -11,9 +11,8 @@ from django.test import SimpleTestCase
 from hypothesis import given
 from hypothesis import strategies as st
 
-from deterministic_lab.binary import HEADER, decode_observations, encode_observations
-from deterministic_lab.corpus import reference_evidence
-from deterministic_lab.errors import (
+from foundation.binary.observations import HEADER, decode_observations, encode_observations
+from foundation.contracts.errors import (
     ArtifactError,
     BorrowConflict,
     IntegrityError,
@@ -21,9 +20,10 @@ from deterministic_lab.errors import (
     SchemaError,
     StaleHandle,
 )
-from deterministic_lab.memory import MemoryArena
-from deterministic_lab.reconstruction import register_evidence
-from deterministic_lab.store import ContentAddressedStore
+from foundation.evidence import register_evidence
+from foundation.fixtures import reference_evidence
+from infrastructure.memory import MemoryArena
+from infrastructure.preservation import ContentAddressedStore
 
 
 class MemoryArenaTests(SimpleTestCase):

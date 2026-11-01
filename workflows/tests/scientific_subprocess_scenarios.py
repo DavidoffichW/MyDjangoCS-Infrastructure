@@ -12,6 +12,16 @@ django.setup()
 
 from django.core.management import call_command  # noqa: E402
 
+from services.scientific import (  # noqa: E402
+    admit_investigation,
+    default_investigation,
+    execute_scientific_job,
+    interrupt_scientific_job,
+    reconcile_artifacts,
+    seed_reference_run,
+)
+from services.scientific.composition import foundation_api  # noqa: E402
+from services.workflows import requeue_job  # noqa: E402
 from workflows.models import (  # noqa: E402
     AdmissionRecord,
     ArtifactRecord,
@@ -19,16 +29,6 @@ from workflows.models import (  # noqa: E402
     Job,
     ResearchRun,
 )
-from workflows.scientific_services import (  # noqa: E402
-    admit_investigation,
-    default_investigation,
-    execute_scientific_job,
-    foundation_api,
-    interrupt_scientific_job,
-    reconcile_artifacts,
-    seed_reference_run,
-)
-from workflows.services import requeue_job  # noqa: E402
 
 
 def emit(value) -> None:

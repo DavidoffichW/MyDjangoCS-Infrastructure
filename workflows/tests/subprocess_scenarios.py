@@ -18,14 +18,14 @@ from django.core.management import call_command  # noqa: E402
 from django.db import transaction  # noqa: E402
 from django.utils import timezone  # noqa: E402
 
-from workflows.models import Job, Workflow, WorkflowStep  # noqa: E402
-from workflows.services import (  # noqa: E402
+from infrastructure.orchestration import claim_job  # noqa: E402
+from services.workflows import (  # noqa: E402
     add_step,
     admit_job,
-    claim_job,
     execute_job,
     recover_stale_jobs,
 )
+from workflows.models import Job, Workflow, WorkflowStep  # noqa: E402
 
 
 def initialize() -> None:
@@ -81,25 +81,25 @@ def crash_after_claim(job_id: str, marker: str) -> None:
 
 
 def crash_during_calculation(job_id: str, marker: str) -> None:
-    import workflows.services as services
+    import services.workflows.execution as execution
 
     def calculation_window(job, attempt_number):
         signal(marker)
         time.sleep(30)
         return {"evidence": [], "summary": None, "values": job.input_values}
 
-    services._run_operations = calculation_window
+    execution.run_operations = calculation_window
     execute_job(job_id)
 
 
 def crash_before_finalization(job_id: str, marker: str) -> None:
-    import workflows.services as services
+    import services.workflows.execution as execution
 
     def finalization_window(*args, **kwargs):
         signal(marker)
         time.sleep(30)
 
-    services._finish_job = finalization_window
+    execution.finish_workflow_job = finalization_window
     execute_job(job_id)
 
 
@@ -122,9 +122,7 @@ def recovery_window(job_id: str, marker: str) -> None:
 
 def recover() -> None:
     print(
-        json.dumps(
-            [str(item) for item in recover_stale_jobs(0, confirmed_worker_stopped=True)]
-        ),
+        json.dumps([str(item) for item in recover_stale_jobs(0, confirmed_worker_stopped=True)]),
         flush=True,
     )
 

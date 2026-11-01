@@ -8,13 +8,10 @@ from uuid import uuid4
 from django.test import Client, TestCase
 from django.urls import reverse
 
+from services.scientific.artifacts import artifact_reference, seed_reference_run
+from services.scientific.composition import foundation_api
+from services.scientific.investigations import default_investigation
 from workflows.models import Job
-from workflows.scientific_services import (
-    _artifact_reference,
-    default_investigation,
-    foundation_api,
-    seed_reference_run,
-)
 
 
 def form_payload(key="browser-science"):
@@ -120,9 +117,7 @@ class ScientificHttpTests(TestCase):
         self.assertTrue(duplicate.json()["data"]["duplicate"])
 
     def test_api_rejects_duplicate_json_keys_and_incomplete_closure(self):
-        duplicate_keys = (
-            '{"declaration":{},"declaration":{},"idempotency_key":"duplicate-json"}'
-        )
+        duplicate_keys = '{"declaration":{},"declaration":{},"idempotency_key":"duplicate-json"}'
         response = self.client.post(
             reverse("api-admit", args=[self.run.id]),
             data=duplicate_keys,
@@ -170,7 +165,7 @@ class ScientificHttpTests(TestCase):
         record = job.result_artifact_identity
         artifact = job.admission.investigation.research_run.state_artifact
         result_record = type(artifact).objects.get(pk=record)
-        reference = foundation_api().store.path_for(_artifact_reference(result_record))
+        reference = foundation_api().store.path_for(artifact_reference(result_record))
         reference.write_bytes(b"corrupt")
         response = self.client.get(reverse("job-result", args=[job.id]))
         self.assertEqual(response.status_code, 409)

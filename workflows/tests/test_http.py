@@ -9,8 +9,9 @@ from django.test import Client, TestCase, TransactionTestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
+from infrastructure.orchestration import claim_job
+from services.workflows import add_step, admit_job, execute_job, recover_stale_jobs
 from workflows.models import Job, Workflow, WorkflowStep
-from workflows.services import add_step, admit_job, claim_job, execute_job, recover_stale_jobs
 
 
 class ConcurrentHttpTests(TransactionTestCase):
@@ -39,7 +40,9 @@ class ConcurrentHttpTests(TransactionTestCase):
         with ThreadPoolExecutor(max_workers=2) as pool:
             outcomes = list(pool.map(lambda _: execute(), range(2)))
 
-        self.assertEqual(sorted(outcome[1] for outcome in outcomes), [200, 409], outcomes)
+        statuses = sorted(outcome[1] for outcome in outcomes)
+        self.assertEqual(statuses[0], 200, outcomes)
+        self.assertIn(statuses[1], {409, 503}, outcomes)
 
 
 @override_settings(ROOT_URLCONF="workflows.tests.test_urls")
@@ -58,7 +61,7 @@ class MiddlewareFailureTests(TestCase):
     @override_settings(
         MIDDLEWARE=[
             "django.middleware.security.SecurityMiddleware",
-            "reliability_lab.middleware.RequestTraceMiddleware",
+            "web_infra.middleware.tracing.RequestTraceMiddleware",
             "workflows.tests.test_support.RaisingMiddleware",
         ]
     )

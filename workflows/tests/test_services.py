@@ -5,13 +5,12 @@ from unittest.mock import patch
 from django.test import TestCase
 from django.utils import timezone
 
-from workflows.models import Job, Workflow, WorkflowStep
-from workflows.services import (
+from infrastructure.orchestration import claim_job
+from services.workflows import (
     IdempotencyConflict,
     InvalidTransition,
     add_step,
     admit_job,
-    claim_job,
     execute_job,
     execute_next_job,
     move_step,
@@ -20,6 +19,7 @@ from workflows.services import (
     requeue_job,
     validate_workflow,
 )
+from workflows.models import Job, Workflow, WorkflowStep
 
 
 class WorkflowServiceTests(TestCase):
@@ -142,7 +142,8 @@ class WorkflowServiceTests(TestCase):
         job = admit_job(self.workflow, [Decimal("1")], "worker-error").job
 
         with patch(
-            "workflows.services._run_operations", side_effect=RuntimeError("private detail")
+            "services.workflows.execution.run_operations",
+            side_effect=RuntimeError("private detail"),
         ):
             result = execute_next_job()
 

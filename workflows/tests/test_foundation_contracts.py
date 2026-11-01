@@ -7,35 +7,31 @@ from pathlib import Path
 
 from django.test import SimpleTestCase
 
-from deterministic_lab.canonical import (
+from foundation.computation import (
+    NEIGHBOR_METHOD,
+    TIME_WINDOW_METHOD,
+    graph_neighborhood_mean,
+    time_window_mean,
+)
+from foundation.contracts.canonical import (
     CanonicalizationError,
     canonical_bytes,
     canonical_decimal,
     normalize_timestamp,
     parse_json_strict,
 )
-from deterministic_lab.corpus import invalid_evidence_cases, reference_evidence
-from deterministic_lab.governance import (
-    INVESTIGATION_SCHEMA,
-    OUTPUT_SCHEMA,
-    AdmissionError,
-    VerificationPipeline,
-)
-from deterministic_lab.identities import identity_for
-from deterministic_lab.methods import (
-    NEIGHBOR_METHOD,
-    NUMERIC_POLICY,
-    TIME_WINDOW_METHOD,
-    graph_neighborhood_mean,
-    time_window_mean,
-)
-from deterministic_lab.reconstruction import (
+from foundation.contracts.errors import AdmissionError, SchemaError
+from foundation.contracts.identities import identity_for
+from foundation.contracts.numeric_policy import NUMERIC_POLICY
+from foundation.evidence import register_evidence
+from foundation.fixtures import invalid_evidence_cases, reference_evidence
+from foundation.governance import VerificationPipeline
+from foundation.governance.contracts import INVESTIGATION_SCHEMA, OUTPUT_SCHEMA
+from foundation.reconstruction import (
     declare_manifest,
     load_state,
     reconstruct_state,
-    register_evidence,
 )
-from deterministic_lab.schema import SchemaError
 
 GOLDEN = json.loads(
     (Path(__file__).parent / "golden" / "conformance_vectors.json").read_text(encoding="utf-8")
@@ -174,9 +170,11 @@ class InvestigationGovernanceTests(SimpleTestCase):
     def setUp(self):
         _, _, self.state = build_state()
         self.pipeline = VerificationPipeline(
-            lambda identity: self.state
-            if identity == self.state.identity
-            else (_ for _ in ()).throw(KeyError(identity))
+            lambda identity: (
+                self.state
+                if identity == self.state.identity
+                else (_ for _ in ()).throw(KeyError(identity))
+            )
         )
 
     def test_complete_investigation_binds_state_method_and_authorization(self):
