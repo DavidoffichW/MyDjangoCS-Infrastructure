@@ -1,13 +1,14 @@
 # MyDjangoCS-Infrastructure
 
-How can a scientific computation remain identifiable, verifiable, and recoverable when
-HTTP requests, Python objects, filesystem writes, and database transactions all have
-different lifetimes?
+> We crash workers on purpose.
 
-MyDjangoCS-Infrastructure is a small systems laboratory built to investigate that question.
-It follows one fictional measurement study from raw observations to an admitted computation,
-an immutable result, and a replay in a separate job. Django and HTMX make the lifecycle
-visible in a browser; the scientific meaning lives in a framework-independent foundation.
+What happens if a worker dies halfway through a calculation? What actually made it to disk?
+Can we run the same job again and trust the result?
+
+MyDjangoCS-Infrastructure is a small Django systems lab for those questions. It follows one
+fictional measurement study from raw observations to an admitted computation, an immutable
+result, and a replay in a separate job. Django and HTMX make the lifecycle visible in a
+browser; the scientific meaning lives in a framework-independent foundation.
 
 The experiment uses four synthetic sensors and two transparent mean calculations. That
 scientific surface is intentionally modest. A complicated model would make it harder to see
@@ -15,11 +16,12 @@ whether a changed result came from new evidence, a different policy, a stale wor
 storage, or the model itself. Here, every stage is small enough to inspect and every identity
 can be reproduced.
 
-## One investigation, seven responsibilities
+## Seven parts, one investigation
 
-The repository separates the rules that define an investigation from the machinery that
-runs it. This resembles the useful part of a layered database design: the upper layer can
-compose a task without becoming a second implementation of the lower layer's contracts.
+Seven parts own seven different responsibilities. The rules that define an investigation
+stay separate from the machinery that runs it. This resembles the useful part of a layered
+database design: the upper layer can compose a task without becoming a second implementation
+of the lower layer's contracts.
 SQLAlchemy's account of its Core/ORM split is a helpful discussion of why a rich lower-level
 contract should remain visible rather than be hidden by a convenient adapter
 ([The Architecture of Open Source Applications](https://aosabook.org/en/v2/sqlalchemy.html)).
@@ -79,7 +81,8 @@ why provenance, content, and state are separate records instead of one convenien
 
 ## Canonical bytes before hashes
 
-A SHA-256 digest only identifies the bytes it receives. It says nothing about whether two
+Hashes don't settle semantics. A SHA-256 digest only identifies the bytes it receives. It
+says nothing about whether two
 equivalent Python dictionaries were serialized in the same order, whether duplicate JSON
 keys were ignored, or whether `-0.0` and `0` were treated consistently. Stable identities
 therefore begin with the restricted canonical profile in
@@ -105,11 +108,11 @@ its state changes.
 
 ## Manifests make reconstruction explicit
 
-Registered evidence is still not semantic state. A manifest binds the evidence content,
-provenance, and reconstruction contract that will interpret it. Reconstruction then creates
-stable sensor entities, explicit edges, and time-ordered observations. The resulting record
-is serialized, assigned a `semantic-state` identity, and immediately verified by loading it
-through the public contract again.
+Evidence doesn't become semantic state just because it has a digest. A manifest binds the
+evidence content, provenance, and reconstruction contract that will interpret it.
+Reconstruction then creates stable sensor entities, explicit edges, and time-ordered
+observations. The resulting record is serialized, assigned a `semantic-state` identity, and
+immediately verified by loading it through the public contract again.
 
 That extra manifest may seem unnecessary when the reconstruction code is local. It answers
 a question that a function name alone cannot: *which versioned rules and exact evidence were
@@ -125,7 +128,8 @@ semantic-state:sha256:6edea8182bab6fe1d6b9b46fbeab87332e60b6a21596ffb0a5093b71ac
 
 ## A computation is a closed declaration
 
-The reference study implements `time-window-mean/1` and
+A job should say exactly what it intends to run. The reference study implements
+`time-window-mean/1` and
 `graph-neighborhood-mean/1`. Both use `Decimal` with precision 28,
 `ROUND_HALF_EVEN`, and six-place result quantization. Missing values are either excluded or
 propagated according to the declaration; the implementation never chooses a policy from the
@@ -146,7 +150,8 @@ execute.
 
 ## The worked investigation
 
-The default declaration selects all four periods for `sensor_alpha` and
+The browser demo follows one deliberately small study. The default declaration selects all
+four periods for `sensor_alpha` and
 `sensor_bravo`, requests the time-window mean, and chooses the `exclude` policy for explicit
 missingness.
 
@@ -166,7 +171,8 @@ thus tested across independent operational records rather than by hashing one ou
 
 ## Memory ownership as a runtime experiment
 
-Binary work often turns lifetime mistakes into stale references or overlapping mutation.
+Python usually keeps lifetime rules out of sight. This experiment brings them back into view,
+because binary work can turn mistakes into stale references or overlapping mutation.
 The arena in [`infrastructure/memory/`](infrastructure/memory/) makes those rules visible in
 ordinary Python. An allocation receives a slot and generation. Shared borrows may coexist;
 an exclusive borrow requires a mutable allocation with no readers or writer. A borrow token
@@ -186,7 +192,8 @@ native memory isolation and exposes no raw address or writable `memoryview`.
 
 ## A portable binary record, not a native ABI
 
-The observation format is designed for reproducible interchange. Its 52-byte little-endian
+The observation format is intentionally boring: fixed, bounded, and easy to verify. Its
+52-byte little-endian
 header records an eight-byte magic value, format version, flags, record count, payload
 length, and a SHA-256 checksum. Each 40-byte record contains a bounded ASCII sensor ID, UTC
 epoch milliseconds, a signed fixed-point value scaled by one million, explicit missing and
@@ -204,7 +211,8 @@ versions.
 
 ## Immutable bytes and mutable records
 
-Scientific artifacts are stored by content digest. Publication writes a temporary file,
+There are two stores here, so one transaction can't cover everything. Scientific artifacts
+are stored by content digest. Publication writes a temporary file,
 flushes it, and exposes it with a same-filesystem hard link. If another writer wins the same
 path, the bytes must match. Reads are incremental and bounded, then recheck size, digest,
 and full artifact identity. The design follows the general observation that immutable
@@ -249,7 +257,8 @@ while the implementation here remains deliberately single-host.
 
 ## Cache and HTTP delivery remain subordinate
 
-A cache entry is a rendered representation, not a scientific record. Only a succeeded job
+The cache gets no vote. A cache entry is a rendered representation, not a scientific record.
+Only a succeeded job
 with a reverified result artifact can be cached. The key includes the job, artifact identity,
 and representation variant. Full HTML and HTMX fragments cannot cross because responses
 vary on `HX-Request`; mutable, failed, and interrupted jobs bypass result caching.
@@ -275,7 +284,7 @@ also reports elapsed time and `Server-Timing`. HTMX requests use the same URLs, 
 tokens, and services as ordinary HTML; they differ only in the returned fragment. The JSON
 API under `/api/v1/` is another adapter over those services, not a second computation path.
 
-## Run the laboratory
+## Run the lab
 
 Python 3.12 and 3.13 are the qualified versions. The application is intended for trusted,
 single-user use on loopback.
@@ -339,15 +348,15 @@ Chromium browser, and run the same checks used by CI:
 See [conformance](docs/CONFORMANCE.md) for the independent expected values and
 [experiments](docs/EXPERIMENTS.md) for the failure-injection evidence.
 
-## What the evidence establishes
+## What the evidence says (and doesn't)
 
 The checked-in suite covers canonical and numerical vectors, schema rejection, memory
 lifecycle properties, binary corruption, artifact races, transaction rollback, independent
 SQLite connections, real subprocess termination, cache variation, versioned API behavior,
 and six Chromium workflows. GitHub Actions runs the complete suite on Windows and Ubuntu
-with Python 3.12 and 3.13. The current pre-release branch was last remotely qualified at
-`c040b69833ef97bb68523ad85558ecb3da1f2e3c`; documentation changes require a fresh exact-SHA
-run before release.
+with Python 3.12 and 3.13. The released v0.1.0 source is
+`f59da3b0722195db350c2856ceaedc36ec1b6fb9`; GitHub Actions run `41281782301` passed all
+four jobs on that exact commit.
 
 These experiments support bounded claims about this implementation and its fixtures. They
 do not provide distributed consensus, arbitrary external-effect exactly-once execution,

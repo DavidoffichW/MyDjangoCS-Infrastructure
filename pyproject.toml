@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "mydjangocs-infrastructure"
 version = "0.1.0"
-description = "A deterministic systems laboratory for scientific evidence, execution, and recovery"
+description = "A Django lab for deterministic computation, storage, and crash recovery"
 readme = "README.md"
 license = "MIT"
 license-files = [
