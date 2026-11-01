@@ -9,25 +9,24 @@ from django.core.exceptions import ValidationError
 from django.db import IntegrityError, connections
 from django.test import TransactionTestCase
 
-from workflows.models import ExecutionAttempt, Job, JobEvent, Workflow, WorkflowStep
-from workflows.services import (
-    EXECUTION_PRECISION,
-    EXECUTION_ROUNDING,
+from infrastructure.orchestration import claim_job
+from infrastructure.orchestration.finalization import finish_workflow_job
+from services.workflows import (
     IdempotencyConflict,
     InvalidTransition,
     WorkflowValidationError,
-    _finish_job,
     add_step,
     admit_job,
     canonical_decimal,
     canonical_json_bytes,
-    claim_job,
     digest,
     execute_job,
     move_step,
     requeue_job,
     validate_workflow,
 )
+from services.workflows.contracts import EXECUTION_PRECISION, EXECUTION_ROUNDING
+from workflows.models import ExecutionAttempt, Job, JobEvent, Workflow, WorkflowStep
 
 
 class AdversarialTransactionTests(TransactionTestCase):
@@ -201,7 +200,10 @@ class AdversarialTransactionTests(TransactionTestCase):
 
     def test_admission_rolls_back_if_event_write_fails(self) -> None:
         with (
-            patch("workflows.services.JobEvent.objects.create", side_effect=RuntimeError("fault")),
+            patch(
+                "services.workflows.admission.JobEvent.objects.create",
+                side_effect=RuntimeError("fault"),
+            ),
             self.assertRaisesRegex(RuntimeError, "fault"),
         ):
             admit_job(self.workflow, [Decimal("1")], "rollback-admission")
@@ -218,7 +220,7 @@ class AdversarialTransactionTests(TransactionTestCase):
             patch.object(ExecutionAttempt, "save", side_effect=RuntimeError("fault")),
             self.assertRaisesRegex(RuntimeError, "fault"),
         ):
-            _finish_job(job.id, attempt_number, result=result)
+            finish_workflow_job(job.id, attempt_number, result=result)
 
         job.refresh_from_db()
         attempt = job.execution_attempts.get(number=attempt_number)

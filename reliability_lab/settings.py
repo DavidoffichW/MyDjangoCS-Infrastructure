@@ -19,11 +19,11 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
-    "reliability_lab.middleware.RequestTraceMiddleware",
+    "web_infra.middleware.tracing.RequestTraceMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django_htmx.middleware.HtmxMiddleware",
-    "reliability_lab.middleware.DemonstrationGuardMiddleware",
+    "web_infra.middleware.guards.DemonstrationGuardMiddleware",
 ]
 
 ROOT_URLCONF = "reliability_lab.urls"
@@ -31,7 +31,7 @@ ROOT_URLCONF = "reliability_lab.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [BASE_DIR / "templates"],
+        "DIRS": [BASE_DIR / "frontend" / "templates"],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -53,6 +53,9 @@ DATABASES = {
     }
 }
 
+ARTIFACT_STORE_ROOT = Path(os.environ.get("LAB_ARTIFACT_STORE", BASE_DIR / "runtime" / "artifacts"))
+DATA_UPLOAD_MAX_MEMORY_SIZE = 2 * 1024 * 1024
+
 CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
@@ -67,7 +70,7 @@ USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = "static/"
-STATICFILES_DIRS = [BASE_DIR / "static"]
+STATICFILES_DIRS = [BASE_DIR / "frontend" / "static"]
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 SECURE_CONTENT_TYPE_NOSNIFF = True

@@ -1,0 +1,43 @@
+<section id="result" class="panel result">
+  <p class="eyebrow">Immutable result</p>
+  <h1>{{ job.result_digest }}</h1>
+  {% if job.admission_id %}
+    <h2>Scientific identity</h2>
+    <dl class="facts">
+      <dt>Result</dt><dd><code>{{ job.result.identity }}</code></dd>
+      <dt>Computation</dt><dd><code>{{ job.result.computation_identity }}</code></dd>
+      <dt>State</dt><dd><code>{{ job.result.state_identity }}</code></dd>
+      <dt>Artifact</dt><dd><code>{{ job.result_artifact_identity }}</code></dd>
+    </dl>
+    <h2>Computed values</h2>
+    {% if job.result.result.results %}
+      <div class="table-wrap"><table>
+        <thead><tr><th>Sensor</th><th>Value</th><th>Available</th><th>Missing</th></tr></thead>
+        <tbody>{% for item in job.result.result.results %}
+          <tr><td>{{ item.sensor_id }}</td><td><code>{{ item.value|default:"null" }}</code></td><td>{{ item.available_count }}</td><td>{{ item.missing_count }}</td></tr>
+        {% endfor %}</tbody>
+      </table></div>
+    {% else %}
+      <p><code>{{ job.result.result.value|default:"null" }}</code></p>
+    {% endif %}
+  {% else %}
+  <h2>Values</h2>
+  <div class="value-list">
+    {% for value in job.result.values %}<code>{{ value }}</code>{% endfor %}
+  </div>
+  {% if job.result.summary %}
+    <h2>Summary</h2>
+    <dl class="facts">
+      <dt>Count</dt><dd>{{ job.result.summary.count }}</dd>
+      <dt>Sum</dt><dd>{{ job.result.summary.sum }}</dd>
+      <dt>Mean</dt><dd>{{ job.result.summary.mean }}</dd>
+    </dl>
+  {% endif %}
+  <h2>Step evidence</h2>
+  <ol class="timeline">
+    {% for item in job.result.evidence %}
+      <li><strong>{{ item.position }} · {{ item.operation }}</strong><small><code>{{ item.output_digest }}</code></small></li>
+    {% endfor %}
+  </ol>
+  {% endif %}
+</section>

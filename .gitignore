@@ -13,3 +13,4 @@ build/
 research-output/
 playwright-report/
 test-results/
+runtime/

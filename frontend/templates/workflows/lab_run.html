@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}{{ research_run.name }} · MyDjangoCS-Infrastructure{% endblock %}
+{% block content %}
+<nav class="crumb"><a href="{% url 'lab-home' %}">Deterministic lab</a> / State</nav>
+<section class="page-heading">
+  <div><p class="eyebrow">Verified semantic state</p><h1>{{ research_run.name }}</h1></div>
+  <span class="badge">{{ research_run.summary.observations }} observations</span>
+</section>
+
+{% if state_error %}
+  <div class="notice error"><strong>State unavailable</strong><span>{{ state_error }}</span></div>
+{% else %}
+<section class="panel stack">
+  <h2>Authority chain</h2>
+  <dl class="facts identities">
+    <dt>Evidence content</dt><dd><code>{{ research_run.evidence_content_identity }}</code></dd>
+    <dt>Evidence provenance</dt><dd><code>{{ research_run.evidence_provenance_identity }}</code></dd>
+    <dt>Manifest</dt><dd><code>{{ research_run.manifest_identity }}</code></dd>
+    <dt>Semantic state</dt><dd><code>{{ research_run.state_identity }}</code></dd>
+  </dl>
+</section>
+
+<div class="grid two lab-grid">
+  <section class="panel">
+    <h2>Entities and relationships</h2>
+    <ul class="plain-list">{% for entity in state.entities %}
+      <li><strong>{{ entity.sensor_id }}</strong><code>{{ entity.identity }}</code></li>
+    {% endfor %}</ul>
+    <p class="muted">{{ state.edges|length }} explicit relationships; proximity is not inferred.</p>
+  </section>
+  <section id="admission-panel" class="panel">
+    {% include "workflows/partials/lab_admission.html" %}
+  </section>
+</div>
+
+<section class="panel">
+  <h2>Canonical observations</h2>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Sensor</th><th>Timestamp</th><th>Value</th><th>Quality</th></tr></thead>
+    <tbody>{% for item in state.observations %}
+      <tr><td>{{ item.sensor_id }}</td><td>{{ item.timestamp }}</td><td><code>{{ item.value|default:"null" }}</code></td><td>{{ item.quality }}</td></tr>
+    {% endfor %}</tbody>
+  </table></div>
+</section>
+{% endif %}
+{% endblock %}

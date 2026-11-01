@@ -1,6 +1,6 @@
 from django.http import HttpResponse
 
-from reliability_lab.middleware import mark_trace
+from web_infra.middleware.tracing import mark_trace
 
 
 def echo_view(request):

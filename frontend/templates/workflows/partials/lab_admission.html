@@ -1,0 +1,15 @@
+{% if admitted_job %}
+  <p class="eyebrow">Admission committed</p>
+  <h2>Computation is ready</h2>
+  <p>The exact state, method, numerical policy, resource envelope, and output schema are frozen.</p>
+  <a class="button primary" href="{% url 'job-detail' admitted_job.id %}">Inspect admitted job</a>
+{% else %}
+  <p class="eyebrow">Closure and admission</p>
+  <h2>Declare the computation</h2>
+  <form method="post" action="{% url 'lab-admit' research_run.id %}" class="stack"
+        hx-post="{% url 'lab-admit' research_run.id %}" hx-target="#admission-panel"
+        hx-swap="innerHTML">
+    {% csrf_token %}{{ form.as_div }}
+    <button class="primary" type="submit">Verify and admit</button>
+  </form>
+{% endif %}

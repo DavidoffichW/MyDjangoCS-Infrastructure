@@ -1,0 +1,16 @@
+{
+  "canonical": {
+    "input": {
+      "schema_version": "mydjangocs.golden/1",
+      "label": "alpha",
+      "values": ["1", "0", "-2.5"]
+    },
+    "bytes_utf8": "{\"label\":\"alpha\",\"schema_version\":\"mydjangocs.golden/1\",\"values\":[\"1\",\"0\",\"-2.5\"]}",
+    "identity": "golden:sha256:17eaa71dfe284d45bfa13bffd977fa6f19daf4b576cada3cea026b5e66ea4083"
+  },
+  "numerical": {
+    "alpha_time_window_mean": "11.5",
+    "bravo_time_window_mean_excluding_missing": "21.333333",
+    "alpha_one_hop_weighted_mean_excluding_missing": "20.511628"
+  }
+}

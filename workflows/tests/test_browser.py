@@ -214,3 +214,39 @@ class BrowserWorkflowTests(StaticLiveServerTestCase):
             self.assertEqual(removal.value.status, 200)
             self.assertIn("Add the first operation", page.locator("body").inner_text())
             browser.close()
+
+    def test_scientific_workbench_preserves_and_executes_verified_state(self) -> None:
+        from playwright.sync_api import sync_playwright
+
+        with sync_playwright() as playwright:
+            browser = playwright.chromium.launch()
+            page = browser.new_page()
+            page.set_default_timeout(10_000)
+            page.goto(f"{self.live_server_url}/lab/")
+            with page.expect_navigation() as opened:
+                page.get_by_role("button", name="Open fictional dataset").click()
+            self.assertEqual(opened.value.status, 200)
+            page.get_by_role("heading", name="Authority chain").wait_for()
+            self.assertEqual(page.locator("table tbody tr").count(), 16)
+
+            page.get_by_label("Idempotency key").fill("browser-scientific-run")
+            with page.expect_response(
+                lambda response: response.url.endswith("/admit/")
+            ) as admitted:
+                page.get_by_role("button", name="Verify and admit").click()
+            self.assertEqual(admitted.value.status, 200, page.locator("body").inner_text())
+            page.get_by_role("heading", name="Computation is ready").wait_for()
+            page.get_by_role("link", name="Inspect admitted job").click()
+
+            with page.expect_response(
+                lambda response: response.url.endswith("/execute-scientific/")
+            ) as execution:
+                page.get_by_role("button", name="Run now").click()
+            self.assertEqual(execution.value.status, 200, page.locator("body").inner_text())
+            page.get_by_text("Succeeded", exact=True).wait_for()
+            page.get_by_role("link", name="Open immutable result").click()
+            page.get_by_role("heading", name="Computed values").wait_for()
+            self.assertEqual(page.locator("table tbody tr").count(), 2)
+            self.assertIn("sensor_alpha", page.locator("table tbody").inner_text())
+            self.assertIn("sensor_bravo", page.locator("table tbody").inner_text())
+            browser.close()
