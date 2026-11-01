@@ -48,8 +48,8 @@ reconciliation, worker, recovery, benchmark, and validation commands.
 This is a trusted, single-user, loopback laboratory. It does not provide distributed
 consensus, arbitrary external-effect exactly-once execution, Rust compiler guarantees,
 production multi-user security, or scientific validation of a physical process. Its corpus
-is entirely fictional. The detailed WellNet research report and source archive are not part
-of the release.
+is entirely fictional. Restricted research material and external source archives are not
+part of the release.
 
 Project code is MIT licensed. The vendored HTMX 2.0.11 asset retains Zero-Clause BSD terms
 documented in `THIRD_PARTY_NOTICES.md`.

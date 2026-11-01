@@ -1,49 +1,30 @@
-# MyDjangoCS-Infrastructure public release candidate manifest
+# Public source manifest
 
-This allowlist defines the independently authored source proposed for a future public
-v0.1.0 release. It supports review; it does not itself authorize a visibility change, merge,
-tag, or GitHub Release.
+MyDjangoCS-Infrastructure v0.1.0 is public. This manifest describes the
+independently authored source and separately licensed frontend asset included
+in the repository.
 
-## Include
+## Included
 
 - `.github/workflows/ci.yml`
 - `.gitignore`
-- `README.md`, `RELEASE_NOTES.md`, `LICENSE`, `THIRD_PARTY_NOTICES.md`
-- `manage.py`, `pyproject.toml`, `MANIFEST.in`, `requirements*.txt`
-- `foundation/`, the Django-independent scientific contracts and public API
-- `infrastructure/`, runtime memory, preservation, persistence, and orchestration
-- `services/`, explicit scientific and workflow application services
-- `web_infra/`, middleware, cache, API, and HTML delivery adapters
-- `reliability_lab/`
-- `workflows/`, including migrations, management commands, and synthetic tests
-- `frontend/templates/`
-- `frontend/__init__.py`, which makes the reviewed frontend assets package data
-- `frontend/static/css/app.css`
-- `frontend/static/vendor/htmx/htmx.min.js` and `frontend/static/vendor/htmx/LICENSE`
-- `docs/ARCHITECTURE.md`, `docs/CONTRACTS.md`, `docs/CONFORMANCE.md`,
-  `docs/EDITORIAL_RESEARCH.md`, `docs/EXPERIMENTS.md`,
-  `docs/REFERENCE_BOUNDARY.md`, and this file
+- `README.md`, `RELEASE_NOTES.md`, `LICENSE`, and `THIRD_PARTY_NOTICES.md`
+- `manage.py`, `pyproject.toml`, `MANIFEST.in`, and `requirements*.txt`
+- `foundation/`, containing the Django-independent scientific contracts and API
+- `infrastructure/`, containing memory, artifact, persistence, and worker mechanisms
+- `services/`, containing application services
+- `web_infra/`, containing middleware, cache, API, and HTML adapters
+- `reliability_lab/` and `workflows/`
+- `frontend/templates/`, `frontend/static/css/app.css`, and package metadata
+- `frontend/static/vendor/htmx/htmx.min.js` with its retained license
+- the public technical documents under `docs/`
 
-## Exclude
+## Excluded
 
-- `.git/`, virtual environments, caches, coverage and test output
-- `db.sqlite3`, `runtime/`, content-addressed runtime artifacts, and every test SQLite file
-- `research-output/` and the detailed WellNet report
-- `references/` and the WellNet archive
-- `GHP_Docs/`, context exports, agent instructions, and internal validation material
-- credentials, local environment files, private datasets, and generated artifacts
+- Git metadata, virtual environments, caches, coverage, and test output
+- SQLite databases, runtime artifact stores, and generated benchmark output
+- local research output, reference archives, portfolio coordination records,
+  context exports, credentials, local configuration, and private datasets
 
-## Publication gates
-
-- Independently authored project code is licensed under the root MIT license.
-- `frontend/static/vendor/htmx/htmx.min.js` and its retained license remain governed by
-  Zero-Clause BSD and are identified in `THIRD_PARTY_NOTICES.md`.
-- The complete reachable Git history, not only the current tree, must pass the same
-  confidentiality and provenance review before public visibility changes.
-- The exact delivered commit must pass the Windows/Ubuntu Python 3.12/3.13 workflow.
-- The owner must explicitly approve merge, public visibility, tag, and release operations.
-
-The reviewed source remains in the private
-`DavidoffichW/MyDjangoCS-Infrastructure` repository. The restricted WellNet archive,
-detailed local research report, GHP coordination records, and context exports are not part
-of this candidate. Their disclosure boundary is unchanged.
+Project code is licensed under MIT. The vendored HTMX asset retains its
+Zero-Clause BSD terms and is identified in `THIRD_PARTY_NOTICES.md`.

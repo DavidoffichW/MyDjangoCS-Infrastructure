@@ -245,6 +245,6 @@ checks, tenant boundaries, TLS policy, secret-management integration, or hardene
 settings. Running it on a shared network or treating it as a hosted workflow service would
 cross the accepted architecture boundary.
 
-The detailed WellNet research report and source archive are not part of this architecture.
+Restricted research material and external source archives are not part of this architecture.
 The public repository is independently implemented, runs without those materials, and
 contains a precise boundary statement in [REFERENCE_BOUNDARY.md](REFERENCE_BOUNDARY.md).
