@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand
 
-from workflows.services import execute_next_job
+from services.workflows import execute_next_job
 
 
 class Command(BaseCommand):

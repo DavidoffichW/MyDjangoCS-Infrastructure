@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand, CommandError
 
-from workflows.services import InvalidTransition, recover_stale_jobs
+from services.workflows import InvalidTransition, recover_stale_jobs
 
 
 class Command(BaseCommand):

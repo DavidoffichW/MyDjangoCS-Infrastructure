@@ -4,7 +4,7 @@ import json
 
 from django.core.management.base import BaseCommand
 
-from workflows.scientific_services import reconcile_artifacts
+from services.scientific import reconcile_artifacts
 
 
 class Command(BaseCommand):

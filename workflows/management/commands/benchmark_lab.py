@@ -9,11 +9,12 @@ from pathlib import Path
 
 from django.core.management.base import BaseCommand, CommandError
 
-from deterministic_lab.api import FoundationAPI
-from deterministic_lab.canonical import canonical_bytes
-from deterministic_lab.corpus import reference_evidence
-from deterministic_lab.memory import MemoryArena
-from workflows.scientific_services import default_investigation
+from foundation import FoundationAPI
+from foundation.contracts.canonical import canonical_bytes
+from foundation.fixtures import reference_evidence
+from infrastructure.memory import MemoryArena
+from infrastructure.preservation import ContentAddressedStore
+from services.scientific.investigations import default_investigation
 
 
 def _milliseconds(samples: list[float]) -> dict[str, float | int]:
@@ -41,7 +42,7 @@ class Command(BaseCommand):
         if iterations < 5 or iterations > 1000:
             raise CommandError("--iterations must be between 5 and 1000")
         with tempfile.TemporaryDirectory(prefix="deterministic-benchmark-") as temporary:
-            api = FoundationAPI(Path(temporary))
+            api = FoundationAPI(ContentAddressedStore(Path(temporary)))
             evidence = reference_evidence()
             cold_started = time.perf_counter()
             _, _, state, artifacts = api.build_state(evidence)

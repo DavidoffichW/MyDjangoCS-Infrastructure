@@ -4,14 +4,14 @@ import json
 
 from django.core.management.base import BaseCommand
 
-from workflows.models import Job
-from workflows.scientific_services import (
+from services.scientific import (
     admit_investigation,
     default_investigation,
     execute_scientific_job,
     seed_reference_run,
     verify_scientific_result,
 )
+from workflows.models import Job
 
 
 class Command(BaseCommand):
@@ -52,8 +52,7 @@ class Command(BaseCommand):
             )
         output = {
             "manifest_identity": research_run.manifest_identity,
-            "replay_identical": outcomes[0]["result_identity"]
-            == outcomes[1]["result_identity"],
+            "replay_identical": outcomes[0]["result_identity"] == outcomes[1]["result_identity"],
             "runs": outcomes,
             "state_identity": research_run.state_identity,
         }
