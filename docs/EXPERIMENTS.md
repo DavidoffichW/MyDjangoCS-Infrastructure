@@ -228,12 +228,11 @@ accessibility certification.
 
 ## Qualification record
 
-The last published source commit, `c040b69833ef97bb68523ad85558ecb3da1f2e3c`, passed GitHub
-Actions run [41275145235](https://github.com/DavidoffichW/MyDjangoCS-Infrastructure/actions/runs/41275145235):
-Windows and Ubuntu on Python 3.12 and 3.13, including 108 Django tests, six Chromium tests,
-Ruff, dependency checks, and migration checks.
+The released v0.1.0 source commit,
+`f59da3b0722195db350c2856ceaedc36ec1b6fb9`, passed GitHub Actions run
+[41281782301](https://github.com/DavidoffichW/MyDjangoCS-Infrastructure/actions/runs/41281782301):
+Windows and Ubuntu on Python 3.12 and 3.13, including 108 Django tests, six
+Chromium tests, Ruff, dependency checks, and migration checks.
 
-This editorial release candidate changes documentation and package metadata. Its local
-qualification is recorded in the release-preparation evidence outside this public repository.
-A fresh GitHub Actions run on the exact delivered commit remains mandatory before merge,
-visibility change, tag, or release. A previous green run is evidence about its own SHA only.
+Later documentation changes still need their own CI run before merge. A green
+run establishes the checked commit, not every future revision.
